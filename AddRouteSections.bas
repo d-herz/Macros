@@ -16,6 +16,11 @@ Sub AddRouteSections()
     ' The starting row for the Q-cell reference (Q4 is for the first/original route)
     Const RouteNameStartRow As Long = 4
     
+
+    ' --- TOTAL ROW CONFIGURATION ---
+    Const TotalAreaRowOffset As Long = 9   ' Row 24 relative to TemplateStartRow (24 - 15)
+    Const TotalVolumeRowOffset As Long = 10 ' Row 25 relative to TemplateStartRow
+    Const TotalItemRowOffset As Long = 11   ' Row 26 relative to TemplateStartRow
     ' The row offset within the template where the SECTION TOTAL is located (L26 is 11 rows from the start row 16 -> 26 - 15 = 11)
     Const SectionTotalRowOffset As Long = 11
     
@@ -41,10 +46,14 @@ Sub AddRouteSections()
     Dim SubtotalInsertionRow As Long
     Dim DynamicSubtotalTextFormula As String
     Dim DynamicSubtotalValueFormula As String
-    
     Dim FinalSubtotalRow As Long
     Dim ProjectWideRow As Long
     Dim DynamicProjectWideFormula As String
+
+    Dim TotalAreaRow As Long
+    Dim TotalVolumeRow As Long
+    Dim TotalItemRow As Long
+    
     
     ' Set the worksheet to the one currently active
     Set ws = ActiveSheet
@@ -103,8 +112,29 @@ Sub AddRouteSections()
         RouteNameRow = RouteNameStartRow + i
         DynamicHeaderFormula = "=CONCAT($C$9, "" for "", Q" & RouteNameRow & ")"
         ws.Range(HeaderColumn & NewHeaderRow).Formula = DynamicHeaderFormula
+
+
+        ' --- 3B: DYNAMIC TOTAL ROW LABEL UPDATES ---
+       
+        ' Calculate absolute row numbers for totals within the new section
+        TotalAreaRow = TargetRow + TotalAreaRowOffset
+        TotalVolumeRow = TargetRow + TotalVolumeRowOffset
+        TotalItemRow = TargetRow + TotalItemRowOffset
+
+        ' Update Total Area label (B:E merged)
+        ws.Range("B" & TotalAreaRow).Formula = _
+            "=CONCAT(""Total Area of "", $C$9, "" for "", Q" & RouteNameRow & ", "" ="")"
+
+        ' Update Total Volume label (B:I merged)
+        ws.Range("B" & TotalVolumeRow).Formula = _
+            "=CONCAT(""Total Volume of "", $C$9, "" for "", Q" & RouteNameRow & ", "" ="")"
+
+        ' Update Total Item label (B:K merged)
+        ws.Range("B" & TotalItemRow).Formula = _
+            "=CONCAT(""Total "", $C$9, "" for "", Q" & RouteNameRow & ", "" = "")"
+
         
-        ' --- 3B: DYNAMIC SUBTOTAL ROW INSERTION ---
+        ' --- 3C: DYNAMIC SUBTOTAL ROW INSERTION ---
         
         ' Calculate the row where the new Subtotal summary row will be inserted.
         ' SubtotalInsertionRow = Original Start + (Shift from Main Sections) + (Shift from Previous Subtotal Insertions)
@@ -130,6 +160,10 @@ Sub AddRouteSections()
         
         ' 6. Calculate the start row for the next main section insertion
         TargetRow = TargetRow + NumRows
+
+        
+
+
     Next i
     
     ' --- 4. POST-LOOP: UPDATE PROJECT WIDE SUBTOTAL FORMULA ---
