@@ -1,0 +1,91 @@
+Sub RevealMetaDataSheets()
+    Dim ws As Worksheet
+    Dim sheetNames As Variant
+    Dim name As Variant
+    Dim makeVisible As Boolean
+    Dim dash As Worksheet
+    Dim btn As Shape
+    
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    
+    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate")
+    Set dash = ThisWorkbook.Sheets("Dash")
+    Set btn = dash.Shapes("btnToggleHiddenSheets")
+    
+    ' Decide whether to show or hide
+    makeVisible = False
+    For Each name In sheetNames
+        Set ws = ThisWorkbook.Sheets(name)
+        If ws.Visible <> xlSheetVisible Then
+            makeVisible = True
+            Exit For
+        End If
+    Next name
+    
+    ' Apply visibility
+    For Each name In sheetNames
+        Set ws = ThisWorkbook.Sheets(name)
+        If makeVisible Then
+            ws.Visible = xlSheetVisible
+        Else
+            ws.Visible = xlSheetVeryHidden
+        End If
+    Next name
+    
+    ' Always stay on Dash
+    dash.Activate
+    
+    ' Update button label
+    If makeVisible Then
+        btn.TextFrame.Characters.Text = "Hide Meta Sheets"
+        Call ScheduleMetaAutoHide   ' start timer
+    Else
+        btn.TextFrame.Characters.Text = "Show Meta Sheets"
+        Call CancelMetaAutoHide     ' stop timer
+    End If
+    
+CleanExit:
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+End Sub
+
+
+Sub ScheduleMetaAutoHide()
+    ' Auto-hide after 5 minutes
+    MetaHideTime = Now + TimeValue("00:05:00")
+    
+    On Error Resume Next
+    Application.OnTime MetaHideTime, "AutoHideMetaSheets"
+    On Error GoTo 0
+End Sub
+
+Sub CancelMetaAutoHide()
+    On Error Resume Next
+    Application.OnTime MetaHideTime, "AutoHideMetaSheets", , False
+    On Error GoTo 0
+End Sub
+
+
+Sub AutoHideMetaSheets()
+    Dim ws As Worksheet
+    Dim dash As Worksheet
+    Dim btn As Shape
+    Dim sheetNames As Variant
+    Dim name As Variant
+    
+    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate")
+    
+    For Each name In sheetNames
+        Set ws = ThisWorkbook.Sheets(name)
+        ws.Visible = xlSheetVeryHidden
+    Next name
+    
+    Set dash = ThisWorkbook.Sheets("Dash")
+    Set btn = dash.Shapes("btnToggleHiddenSheets")
+    
+    btn.TextFrame.Characters.Text = "Show Meta Sheets"
+    dash.Activate
+End Sub
+
+
