@@ -529,6 +529,3 @@ PDFError:
     On Error Resume Next
     Sheets("DES_1").Select
 End Sub
-
-
-
