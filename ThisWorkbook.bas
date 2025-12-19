@@ -44,8 +44,8 @@ Private Sub Workbook_Open()
         ActiveWindow.Zoom = 100
     Next ws
     
-    Call HideAdminSheets
-    Call UpdateAdminButtonLabel
+    Call CancelMetaAutoHide
+    Call AutoHideMetaSheets
     
     ' Set SummaryCDM as the active sheet at the end
     Sheets("Dash").Activate
