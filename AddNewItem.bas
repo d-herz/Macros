@@ -60,21 +60,21 @@ Sub AddNewItem()
     End If
     
     ' Find category header
-Set foundHeader = ws.Cells.Find(What:=category, LookIn:=xlValues, LookAt:=xlWhole)
-If foundHeader Is Nothing Then
-    MsgBox "Could not find category header: " & category, vbCritical
-    Exit Sub
-End If
-
-' Find next header (to define the end of the section)
-lastRow = ws.Cells(ws.Rows.count, "B").End(xlUp).Row
-nextRow = lastRow + 1
-For i = foundHeader.Row + 1 To lastRow
-    If ws.Cells(i, "B").Value Like "*Items" Then
-        nextRow = i
-        Exit For
+    Set foundHeader = ws.Cells.Find(What:=category, LookIn:=xlValues, LookAt:=xlWhole)
+    If foundHeader Is Nothing Then
+        MsgBox "Could not find category header: " & category, vbCritical
+        Exit Sub
     End If
-Next i
+
+    ' Find next header (to define the end of the section)
+    lastRow = ws.Cells(ws.Rows.count, "B").End(xlUp).Row
+    nextRow = lastRow + 1
+    For i = foundHeader.Row + 1 To lastRow
+        If ws.Cells(i, "B").Value Like "*Items" Then
+            nextRow = i
+        Exit For
+        End If
+    Next i
 
 ' --- Skip 2 header rows under category header (for skipping "template" row) ---
 firstItemRow = foundHeader.Row + 3
