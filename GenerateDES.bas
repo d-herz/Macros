@@ -215,7 +215,7 @@ Sub GenerateDES()
 
                 colPtr = colPtr + 1
 
-                ' Section transition
+                ' Section transition (for top and bottom rows of "items")
                 If colPtr > maxColumns Then
                     If sectionRow = 1 Then
                         Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, 0)
