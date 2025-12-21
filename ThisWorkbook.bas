@@ -119,7 +119,7 @@ Private Sub StoreOldValues(ws As Worksheet)
     
     ' --- Store in dictionary ---
     If SheetOldValues Is Nothing Then Set SheetOldValues = CreateObject("Scripting.Dictionary")
-    Set SheetOldValues(ws.name) = oldValues   ' <-- key fix: use Set for object
+    Set SheetOldValues(ws.name) = oldValues   
 End Sub
 
 
