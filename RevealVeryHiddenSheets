@@ -9,7 +9,7 @@ Sub RevealMetaDataSheets()
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     
-    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate")
+    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList")
     Set dash = ThisWorkbook.Sheets("Dash")
     Set btn = dash.Shapes("btnToggleHiddenSheets")
     
@@ -85,7 +85,7 @@ Sub AutoHideMetaSheets()
     Set btn = dash.Shapes("btnToggleHiddenSheets")
     
     btn.TextFrame.Characters.Text = "Show Meta Sheets"
-    dash.Activate
+    ' dash.Activate
 End Sub
 
 
