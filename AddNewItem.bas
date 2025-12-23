@@ -1,6 +1,7 @@
 Sub AddNewItem()
     Dim ws As Worksheet
     Dim itemNum As String
+    Dim itemName As String
     Dim prefix As String
     Dim foundHeader As Range
     Dim insertRow As Long
@@ -123,12 +124,25 @@ End If
     ws.Cells(insertRow, "B").NumberFormat = "@"
     ws.Cells(insertRow, "B").Value = itemNum
     
-    
+    ' Find Item Name from MasterItemBidList
+    On Error Resume Next
+    itemName = Application.WorksheetFunction.XLookup( _
+                    itemNum, _
+                    ThisWorkbook.Sheets("_MasterItemBidList").Columns("A"), _
+                    ThisWorkbook.Sheets("_MasterItemBidList").Columns("C"), _
+                    "")
+    On Error GoTo 0
+
+    If itemName = "" Then
+        itemName = "Description Not Found"
+    End If
     
     ' === Create Item Breakout Sheet ===
     Dim breakoutTemplate As Worksheet
     Dim newBreakout As Worksheet
     Dim sheetName As String
+    Dim originalVisibility As XlSheetVisibility
+    
 
     sheetName = itemNum  ' The item number becomes the sheet name
 
@@ -137,21 +151,26 @@ End If
     Set newBreakout = ThisWorkbook.Sheets(sheetName)
     On Error GoTo 0
 
-    If Not newBreakout Is Nothing Then
-        MsgBox "A breakout tab for item " & itemNum & " already exists.", vbExclamation
-    Else
-        ' Copy template
+    If newBreakout Is Nothing Then
+       ' Copy template
         Set breakoutTemplate = ThisWorkbook.Sheets("_ItemBreakoutTemplate")
+        
+        ' Store original visibility and temporarily unhide
+        originalVisibility = breakoutTemplate.Visible
+        breakoutTemplate.Visible = xlSheetVisible
+        
         
         ' Unprotect Template only if needed — keeps user from messing with it
         If breakoutTemplate.ProtectContents Then
             breakoutTemplate.Unprotect
         End If
         
+        ' Copy ItemBreakoutTemplate
         breakoutTemplate.Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count)
         
-        ' Re-protect the template after copying
-        breakoutTemplate.Protect , UserInterfaceOnly:=True
+        ' Restore template visibility and Re-protect the template after copying
+        breakoutTemplate.Protect UserInterfaceOnly:=True
+        breakoutTemplate.Visible = originalVisibility
         
         ' Rename copied sheet
         Set newBreakout = ActiveSheet
@@ -162,21 +181,45 @@ End If
         newBreakout.Range("F6").Formula = _
             "=HYPERLINK(""#'ItemList'!B" & insertRow & """, ""Go Back to Item List"")"
 
-    
+        ' Rename the new sheet
         On Error Resume Next
-        newBreakout.Name = sheetName
+        newBreakout.name = sheetName
     
         If Err.Number <> 0 Then
             MsgBox "Could not name breakout sheet '" & sheetName & "'. " & vbCrLf & _
                "Check for invalid characters or duplicate names.", vbCritical
             Err.Clear
         End If
+        
+        ' Auto-sort item breakout tabs
+        Call SortItemBreakoutTabs(False)
         On Error GoTo 0
+        
+        
+    Else
+         MsgBox "A breakout tab for item " & itemNum & " already exists.", vbExclamation
+        
+        
     End If
+    
+    
+  
     
     Application.CutCopyMode = False
     MsgBox "Item #" & itemNum & " added under " & category & ".", vbInformation
 
-    ws.Protect, UserInterfaceOnly:=True
+    ws.Protect , UserInterfaceOnly:=True
+    
+    
+      ' --- Update Last Updated in _MetaData
+    Call UpdateEstimateMetaData
+    
+   
+    
+    ' Log the change in _MetaData
+    Call LogEstimateChange("Macro: AddNewItem", "Item: #" & itemNum & " " & itemName & " Added")
+    
 End Sub
+
+
 
