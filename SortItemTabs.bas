@@ -1,7 +1,7 @@
-' This Macro is for physically sorting the item breakout tabs in order
+Option Explicit
+' This macro is for physically ordering the item breakout tabs
 
-Sub SortItemBreakoutTabs()
-
+Sub SortItemBreakoutTabs(Optional showMsg As Boolean = True)
     Dim ws As Worksheet
     Dim itemSheets() As String
     Dim sortKeys() As Long
@@ -9,64 +9,67 @@ Sub SortItemBreakoutTabs()
     Dim tempName As String
     Dim tempKey As Long
     Dim numericPart As String
+    
+    ' 1) Optimization: Turn off "noise" that slows down execution
+    On Error GoTo CleanUp
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
 
-    '====================
-    ' 1) Capture item breakout sheet names (numeric or numeric + "A")
-    '====================
+    ' 2) Capture item breakout sheet names
+    ' Pre-size the array to total worksheets to avoid constant ReDim Preserve
+    ReDim itemSheets(1 To ThisWorkbook.Worksheets.count)
+    ReDim sortKeys(1 To ThisWorkbook.Worksheets.count)
     count = 0
+    
     For Each ws In ThisWorkbook.Worksheets
-        numericPart = ws.Name
-        ' Remove trailing "A" if exists
+        numericPart = ws.name
         If Right(numericPart, 1) = "A" Then numericPart = Left(numericPart, Len(numericPart) - 1)
         
-        ' Check if remaining part is numeric
         If IsNumeric(numericPart) Then
-            ReDim Preserve itemSheets(count)
-            ReDim Preserve sortKeys(count)
-            itemSheets(count) = ws.Name
-            sortKeys(count) = CLng(numericPart)
             count = count + 1
+            itemSheets(count) = ws.name
+            sortKeys(count) = CLng(numericPart)
         End If
     Next ws
     
-    '====================
-    ' 2) Sort item sheets by numeric value
-    '====================
+    ' Exit if no sheets found
+    If count = 0 Then GoTo CleanUp
+
+    ' 3) Sort item sheets (Bubble Sort is fine for small/medium sheet counts)
     If count > 1 Then
-        For i = 0 To count - 2
-            For j = i + 1 To count - 1
+        For i = 1 To count - 1
+            For j = i + 1 To count
                 If sortKeys(j) < sortKeys(i) Then
-                    ' Swap keys
-                    tempKey = sortKeys(i)
-                    sortKeys(i) = sortKeys(j)
-                    sortKeys(j) = tempKey
-                    ' Swap sheet names
-                    tempName = itemSheets(i)
-                    itemSheets(i) = itemSheets(j)
-                    itemSheets(j) = tempName
+                    tempKey = sortKeys(i): sortKeys(i) = sortKeys(j): sortKeys(j) = tempKey
+                    tempName = itemSheets(i): itemSheets(i) = itemSheets(j): itemSheets(j) = tempName
                 End If
             Next j
         Next i
     End If
     
-    '====================
-    ' 3) Reorder the sheets in workbook
-    '====================
-    If count > 0 Then
-        ' Move the first item sheet after "ItemList"
-        ThisWorkbook.Sheets(itemSheets(0)).Move After:=ThisWorkbook.Sheets("ItemList")
-        ' Move remaining item sheets after the previous sorted sheet
-        For i = 1 To count - 1
-            ThisWorkbook.Sheets(itemSheets(i)).Move After:=ThisWorkbook.Sheets(itemSheets(i - 1))
-        Next i
-    End If
+    ' 4) Reorder the sheets physically
+    ' Moving sheets is expensive; doing it once per sheet is the way to go
+    Dim anchorSheet As String
+    anchorSheet = "ItemList"
+    
+    For i = 1 To count
+        ThisWorkbook.Sheets(itemSheets(i)).Move After:=ThisWorkbook.Sheets(anchorSheet)
+        anchorSheet = itemSheets(i) ' The current sheet becomes the new anchor
+    Next i
 
-    '====================
-    ' 4) Return to ItemList tab
-    '====================
     ThisWorkbook.Sheets("ItemList").Activate
 
-
-    MsgBox "Item breakout tabs sorted successfully!", vbInformation
-
+CleanUp:
+    ' 5) Restore settings
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+    
+    If Err.Number <> 0 Then
+        MsgBox "An error occurred: " & Err.Description, vbCritical
+    End If
+    
+    If showMsg Then MsgBox "Item breakout tabs sorted successfully!", vbInformation
+    
 End Sub
