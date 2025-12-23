@@ -1,9 +1,12 @@
-' This macro is for removing an item from the "ItemList". 
+Option Explicit
+
+' This macro is for removing an item from the "ItemList".
 ' It will also ask the user if they want to delete the associated item breakout tab (if it exists)
 
 Sub RemoveItem()
     Dim ws As Worksheet
     Dim itemNum As String
+    Dim itemName As String
     Dim suffix As String
     Dim fullSheetName As String
     Dim itemRow As Long
@@ -29,7 +32,7 @@ Sub RemoveItem()
     ws.Unprotect
     
     ' Find the item in column B
-    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.count, "B").End(xlUp).Row
     found = False
     For itemRow = 1 To lastRow
         If ws.Cells(itemRow, "B").Text = itemNum Then
@@ -40,8 +43,21 @@ Sub RemoveItem()
     
     If Not found Then
         MsgBox "Item " & itemNum & " not found in ItemList.", vbExclamation
-        ws.Protect, UserInterfaceOnly:=True
+        ws.Protect , UserInterfaceOnly:=True
         Exit Sub
+    End If
+    
+    ' Get Item Name (used in Logger)
+    On Error Resume Next
+    itemName = Application.WorksheetFunction.XLookup( _
+                    itemNum, _
+                    ThisWorkbook.Sheets("_MasterItemBidList").Columns("A"), _
+                    ThisWorkbook.Sheets("_MasterItemBidList").Columns("C"), _
+                    "")
+    On Error GoTo 0
+
+    If itemName = "" Then
+        itemName = "Description Not Found"
     End If
     
     ' Get suffix from column C (if any) and build full sheet name
@@ -69,5 +85,17 @@ Sub RemoveItem()
     MsgBox "Item " & itemNum & " has been removed from the ItemList.", vbInformation
     
     ' Re-protect the sheet
-    ws.Protect, UserInterfaceOnly:=True
+    ws.Protect , UserInterfaceOnly:=True
+    
+    ' --- Update Last Updated in _MetaData
+    Call UpdateEstimateMetaData
+    
+    ' Log the change in _MetaData
+    Call LogEstimateChange("Macro: RemoveItem", "Item: #" & itemNum & " " & itemName & " Removed")
+
+    
+    
 End Sub
+
+
+
