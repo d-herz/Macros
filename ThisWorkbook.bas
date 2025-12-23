@@ -47,7 +47,7 @@ Private Sub Workbook_Open()
     Call CancelMetaAutoHide
     Call AutoHideMetaSheets
     
-    ' Set SummaryCDM as the active sheet at the end
+    ' Set Dash as the active sheet at the end
     Sheets("Dash").Activate
 End Sub
 
@@ -139,7 +139,7 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
         If oldValues(1) <> Empty And newSubtotal <> oldValues(1) Then
             Application.EnableEvents = False
             Call LogEstimateChange("Manual Edit", _
-                "Item # " & ws.name & ", ProjectWide Subtotal changed from " & oldValues(1) & " to " & newSubtotal)
+                "Item: #" & ws.name & ", ProjectWide Subtotal changed from " & oldValues(1) & " to " & newSubtotal)
             Call UpdateEstimateMetaData
             Application.EnableEvents = True
         End If
@@ -152,7 +152,7 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
         If oldValues(2) <> Empty And newUnassigned <> oldValues(2) Then
             Application.EnableEvents = False
             Call LogEstimateChange("Manual Edit", _
-                "Item # " & ws.name & ", Unassigned percentage changed from " & (oldValues(2) * 100) & "% to " & (newUnassigned * 100) & "%")
+                "Item: #" & ws.name & ", Unassigned percentage changed from " & (oldValues(2) * 100) & "% to " & (newUnassigned * 100) & "%")
             Call UpdateEstimateMetaData
             Application.EnableEvents = True
         End If
