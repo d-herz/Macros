@@ -9,7 +9,7 @@ Sub RevealMetaDataSheets()
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     
-    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList")
+    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList", "_UnitPrices")
     Set dash = ThisWorkbook.Sheets("Dash")
     Set btn = dash.Shapes("btnToggleHiddenSheets")
     
@@ -53,7 +53,7 @@ End Sub
 
 Sub ScheduleMetaAutoHide()
     ' Auto-hide after 5 minutes
-    MetaHideTime = Now + TimeValue("00:05:00")
+    MetaHideTime = Now + TimeValue("00:10:00")
     
     On Error Resume Next
     Application.OnTime MetaHideTime, "AutoHideMetaSheets"
@@ -74,7 +74,7 @@ Sub AutoHideMetaSheets()
     Dim sheetNames As Variant
     Dim name As Variant
     
-    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate")
+    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList", "_UnitPrices")
     
     For Each name In sheetNames
         Set ws = ThisWorkbook.Sheets(name)
