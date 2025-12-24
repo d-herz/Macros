@@ -1,8 +1,9 @@
 Option Explicit
 
+
 Sub GenerateDES()
     ' -------------------------
-    ' 1. SPEED SWITCHES ON
+    ' SPEED SWITCHES ON
     ' -------------------------
     With Application
         .ScreenUpdating = False
@@ -48,7 +49,7 @@ Sub GenerateDES()
 
     ' Delete existing DES sheets
     For i = ThisWorkbook.Sheets.count To 1 Step -1
-        If Left(ThisWorkbook.Sheets(i).Name, 3) = "DES" Then
+        If Left(ThisWorkbook.Sheets(i).name, 3) = "DES" Then
             ThisWorkbook.Sheets(i).Delete
         End If
     Next i
@@ -121,20 +122,22 @@ Sub GenerateDES()
     colPtr = 2
     maxColumns = 26
 
-    Set wsDES = ThisWorkbook.Sheets.Add
-    wsDES.Name = "DES_" & desIndex
-    wsDES.Cells.Font.Name = "Calibri"
+    Set wsDES = ThisWorkbook.Sheets.Add(After:=wsItemList)
+    wsDES.name = "DES_" & desIndex
+    wsDES.Cells.Font.name = "Calibri"
     
     Call Apply_Print_Settings(wsDES)
     Call Add_Row_Headers(wsDES, routeList, routeCount, 0, maxColumns)
+    Call Add_Row_Headers(wsDES, routeList, routeCount, section2Offset, maxColumns)
 
     ' -------------------------
     ' Items Loop
     ' -------------------------
+   
     missingBreakouts = ""
     colPtr = 2
     sectionRow = 1
-    catStartCol = 0
+    catStartCol = 2
     prevCategoryName = ""
     
     Dim wsBreakout As Worksheet
@@ -142,6 +145,42 @@ Sub GenerateDES()
     Dim lastBreakoutRow As Long
 
     For i = 1 To itemCount
+        ' --- SECTION/SHEET WRAP LOGIC ---
+        If colPtr > maxColumns Then
+            ' Finalize the category header for the row that just finished
+            Dim wrapOffset As Long
+            wrapOffset = IIf(sectionRow = 1, 0, section2Offset)
+            Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, wrapOffset)
+            
+            If sectionRow = 1 Then
+                ' Move from Section 1 to Section 2
+                sectionRow = 2
+                colPtr = 2
+                catStartCol = 2
+            Else
+                ' Section 2 is full. ONLY create a new sheet if there are more items left to process.
+                If i <= itemCount Then
+                    ' Finish current sheet before moving to the next
+                    Call Finalize_DES_Sheet(wsDES, wsProjectInfo, maxColumns, section2Offset, routeCount)
+                    
+                    desIndex = desIndex + 1
+                    ' FIX: Added After:= parameter to keep sheets in order
+                    Set wsDES = ThisWorkbook.Sheets.Add(After:=wsDES)
+                    wsDES.name = "DES_" & desIndex
+                    wsDES.Cells.Font.name = "Calibri"
+                    
+                    Call Apply_Print_Settings(wsDES)
+                    Call Add_Row_Headers(wsDES, routeList, routeCount, 0, maxColumns)
+                    Call Add_Row_Headers(wsDES, routeList, routeCount, section2Offset, maxColumns)
+                    
+                    sectionRow = 1
+                    colPtr = 2
+                    catStartCol = 2
+                End If
+            End If
+        End If
+        ' --------------------------------
+
         If Trim(itemData(1, i)) <> "" Then
             breakoutTabName = CStr(itemData(1, i))
             If LCase(Trim(itemData(2, i))) = "a" Then breakoutTabName = breakoutTabName & "A"
@@ -157,29 +196,28 @@ Sub GenerateDES()
                     ReDim BreakoutData(1 To 1, 1 To 2)
                 End If
 
-                Dim rowOffset As Long
-                If sectionRow = 1 Then rowOffset = 0 Else rowOffset = section2Offset
+                Dim currentOffset As Long
+                currentOffset = IIf(sectionRow = 1, 0, section2Offset)
 
-                If i = 1 Or itemData(5, i) <> itemData(5, i - 1) Then
-                    Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, rowOffset)
-                    If catStartCol > 0 Then colPtr = colPtr + 1
+                ' Category header logic
+                If i = 1 Or itemData(5, i) <> prevCategoryName Then
+                    ' Finalize the previous category on this same row
+                    If i > 1 Then
+                        Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, currentOffset)
+                    End If
+                    
                     prevCategoryName = itemData(5, i)
                     catStartCol = colPtr
                 End If
 
-                wsDES.Cells(3 + rowOffset, colPtr).NumberFormat = "@"
-                wsDES.Cells(3 + rowOffset, colPtr).Value = CStr(itemData(1, i))
+                ' Item placement (Standard logic continues...)
+                wsDES.Cells(3 + currentOffset, colPtr).NumberFormat = "@"
+                wsDES.Cells(3 + currentOffset, colPtr).Value = CStr(itemData(1, i))
+                wsDES.Cells(2 + currentOffset, colPtr).Value = IIf(LCase(Trim(itemData(2, i))) = "a", "A", "")
+                wsDES.Cells(4 + currentOffset, colPtr).Value = itemData(3, i)
+                wsDES.Cells(4 + currentOffset, colPtr).WrapText = True
 
-                If LCase(Trim(itemData(2, i))) = "a" Then
-                    wsDES.Cells(2 + rowOffset, colPtr).Value = "A"
-                Else
-                    wsDES.Cells(2 + rowOffset, colPtr).ClearContents
-                End If
-
-                wsDES.Cells(4 + rowOffset, colPtr).Value = itemData(3, i)
-                wsDES.Cells(4 + rowOffset, colPtr).WrapText = True
-
-                With wsDES.Cells(5 + rowOffset, colPtr)
+                With wsDES.Cells(5 + currentOffset, colPtr)
                     .Value = UCase(Trim(itemData(4, i)))
                     .HorizontalAlignment = xlCenter
                     .VerticalAlignment = xlCenter
@@ -187,85 +225,51 @@ Sub GenerateDES()
                 End With
 
                 For j = 1 To routeCount
-                    wsDES.Cells(5 + j + rowOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, routeList(j) & " Subtotal")
-                    wsDES.Cells(5 + j + rowOffset, colPtr).HorizontalAlignment = xlCenter
+                    wsDES.Cells(5 + j + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, routeList(j) & " Subtotal")
+                    wsDES.Cells(5 + j + currentOffset, colPtr).HorizontalAlignment = xlCenter
                 Next j
 
-                wsDES.Cells(6 + routeCount + rowOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "ProjectWide Subtotal")
-                wsDES.Cells(7 + routeCount + rowOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "Unassigned")
-                wsDES.Cells(8 + routeCount + rowOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "Total")
-                wsDES.Range(wsDES.Cells(6 + routeCount + rowOffset, colPtr), wsDES.Cells(8 + routeCount + rowOffset, colPtr)).HorizontalAlignment = xlCenter
+                wsDES.Cells(6 + routeCount + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "ProjectWide Subtotal")
+                wsDES.Cells(7 + routeCount + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "Unassigned")
+                wsDES.Cells(8 + routeCount + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "Total")
+                wsDES.Range(wsDES.Cells(6 + routeCount + currentOffset, colPtr), wsDES.Cells(8 + routeCount + currentOffset, colPtr)).HorizontalAlignment = xlCenter
 
-                With wsDES.Range(wsDES.Cells(2 + rowOffset, colPtr), wsDES.Cells(4 + rowOffset, colPtr))
+                With wsDES.Range(wsDES.Cells(2 + currentOffset, colPtr), wsDES.Cells(4 + currentOffset, colPtr))
                     .Orientation = 90
                     .HorizontalAlignment = xlCenter
                     .VerticalAlignment = xlCenter
                 End With
 
-                With wsDES.Range(wsDES.Cells(2 + rowOffset, 2), wsDES.Cells(8 + routeCount + rowOffset, maxColumns))
-                    .Borders.LineStyle = xlContinuous
-                    .Borders.Weight = xlThin
-                End With
-
-                wsDES.Range(wsDES.Cells(6 + routeCount + rowOffset, 2), wsDES.Cells(8 + routeCount + rowOffset, maxColumns)).Interior.Color = RGB(223, 227, 229)
-
-                ' Row sizing for current item
-                wsDES.Rows(3 + rowOffset).EntireRow.AutoFit
-                wsDES.Rows(4 + rowOffset).EntireRow.AutoFit
-
                 colPtr = colPtr + 1
-
-                ' Section transition (for top and bottom rows of "items")
-                If colPtr > maxColumns Then
-                    If sectionRow = 1 Then
-                        Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, 0)
-                        colPtr = 2
-                        sectionRow = 3
-                        catStartCol = 0
-                        prevCategoryName = ""
-                        Call Add_Row_Headers(wsDES, routeList, routeCount, section2Offset, maxColumns)
-                    Else
-                        Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, section2Offset)
-                        Call Finalize_DES_Sheet(wsDES, wsProjectInfo, maxColumns, section2Offset)
-                        
-                        desIndex = desIndex + 1
-                        Set wsDES = ThisWorkbook.Sheets.Add(After:=wsDES)
-                        wsDES.Name = "DES_" & desIndex
-                        wsDES.Cells.Font.Name = "Calibri"
-                        
-                        Call Apply_Print_Settings(wsDES)
-                        Call Add_Row_Headers(wsDES, routeList, routeCount, 0, maxColumns)
-                        colPtr = 2
-                        sectionRow = 1
-                        catStartCol = 0
-                        prevCategoryName = ""
-                    End If
-                End If
             Else
-                ' --- FLAG MISSING BREAKOUT (Now with Item Name) ---
                 missingBreakouts = missingBreakouts & vbCrLf & "• " & itemData(1, i) & ": " & itemData(3, i)
             End If
         End If
     Next i
+
+    ' --- IMPORTANT: Finalize the very last category header after loop ends ---
+    Dim finalOffset As Long
+    finalOffset = IIf(sectionRow = 1, 0, section2Offset)
+    Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, finalOffset)
 
     If Len(missingBreakouts) > 0 Then
         MsgBox "The following breakout tabs were not found:" & vbCrLf & missingBreakouts, vbExclamation
     End If
 
     ' Finalize last sheet
-    Dim finalOffset As Long
-    finalOffset = IIf(sectionRow = 1, 0, section2Offset)
-    Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, finalOffset)
-    Call Finalize_DES_Sheet(wsDES, wsProjectInfo, maxColumns, section2Offset)
+
+    Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, 0)
     
+    ' Ensure the second section and footer are generated and formatted
+    Call Finalize_DES_Sheet(wsDES, wsProjectInfo, maxColumns, section2Offset, routeCount)
+
+
     ' -------------------------
     ' FOCUS BACK TO FIRST SHEET
     ' -------------------------
     On Error Resume Next
     ThisWorkbook.Sheets("DES_1").Select
     On Error GoTo ErrorHandler
-
-    ' MsgBox "Detailed Estimate Sheets generated successfully!", vbInformation
 
     ' Prompt user for PDF export
     Dim exportAnswer As VbMsgBoxResult
@@ -297,6 +301,7 @@ End Sub
 Sub Add_Row_Headers(wsDES As Worksheet, routeList() As String, routeCount As Long, offset As Long, maxColumns As Long)
     Dim j As Long
     Dim headers() As Variant
+    ' Dimension array to hold all possible row labels
     ReDim headers(1 To 8 + routeCount, 1 To 1)
     
     headers(2, 1) = "A"
@@ -304,15 +309,20 @@ Sub Add_Row_Headers(wsDES As Worksheet, routeList() As String, routeCount As Lon
     headers(4, 1) = "Item"
     headers(5, 1) = "Unit"
 
-    For j = 1 To routeCount: headers(5 + j, 1) = routeList(j): Next j
+    For j = 1 To routeCount
+        headers(5 + j, 1) = routeList(j)
+    Next j
 
+    ' Correct indices for the totals based on how many routes exist
     headers(6 + routeCount, 1) = "Subtotal"
     headers(7 + routeCount, 1) = "Unassigned"
     headers(8 + routeCount, 1) = "Total"
     
+    ' Apply labels to Column A
     wsDES.Cells(1 + offset, 1).Resize(UBound(headers, 1), 1).Value = headers
     wsDES.Columns("A").EntireColumn.AutoFit
 
+    ' Format column A
     With wsDES.Range("A" & (2 + offset) & ":A" & (8 + routeCount + offset))
         .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
@@ -320,29 +330,51 @@ Sub Add_Row_Headers(wsDES As Worksheet, routeList() As String, routeCount As Lon
         .WrapText = True
         .Borders.LineStyle = xlContinuous
         .Borders.Weight = xlThin
-        wsDES.Range("A" & (6 + routeCount + offset) & ":A" & (8 + routeCount + offset)).Interior.Color = RGB(223, 227, 229)
-        .EntireRow.AutoFit
     End With
+    
+    ' Apply grey background to subtotal/total headers
+    wsDES.Range("A" & (6 + routeCount + offset) & ":A" & (8 + routeCount + offset)).Interior.Color = RGB(223, 227, 229)
 
+    ' Row Height Logic: Specifically target the "Item" row (4th row of section)
+    ' If there is no item data in Column B, set height to 256
+    If wsDES.Cells(4 + offset, 2).Value = "" Then
+        wsDES.Rows(4 + offset).RowHeight = 256
+    End If
+
+    ' Grid borders for the data area
     With wsDES.Range(wsDES.Cells(2 + offset, 2), wsDES.Cells(8 + routeCount + offset, maxColumns))
         .Borders.LineStyle = xlContinuous
         .Borders.Weight = xlThin
     End With
+    
+    With wsDES.Range(wsDES.Cells(1 + offset, 1), wsDES.Cells(1 + offset, maxColumns)).Borders
+        .LineStyle = xlContinuous
+        .Weight = xlThin
+    End With
+    
+    
 End Sub
 
 Sub Finalize_Category_Header(wsDES As Worksheet, ByVal catStartCol As Long, ByVal colPtr As Long, ByVal prevCategoryName As String, offset As Long)
-    If catStartCol > 0 Then
-        If colPtr - catStartCol > 0 Then wsDES.Range(wsDES.Cells(1 + offset, catStartCol), wsDES.Cells(1 + offset, colPtr - 1)).Merge
-        With wsDES.Cells(1 + offset, catStartCol)
+    If catStartCol > 0 And colPtr > catStartCol Then
+        Dim headerRange As Range
+        Set headerRange = wsDES.Range(wsDES.Cells(1 + offset, catStartCol), wsDES.Cells(1 + offset, colPtr - 1))
+        
+        ' Merge first, then format the entire range
+        headerRange.Merge
+        
+        With headerRange
             .Value = prevCategoryName
             .HorizontalAlignment = xlCenter
             .VerticalAlignment = xlCenter
             .Font.Bold = True
             .Borders.LineStyle = xlContinuous
-            .Borders.Weight = xlMedium
+            .Borders.Weight = xlThin
+            
         End With
     End If
 End Sub
+
 
 Sub Add_Footer_Info(wsDES As Worksheet, wsProjectInfo As Worksheet, maxColumns As Long, Optional startRow As Long = 27)
     Dim wsSummaryCDM As Worksheet, i As Long, dataRow As Long
@@ -422,17 +454,35 @@ Sub Apply_Outline_Border(targetRange As Range)
 End Sub
 
 Sub Apply_Final_Borders(wsDES As Worksheet, maxColumns As Long, lastItemDESRow As Long, section2Offset As Long)
-    Dim finalBottomRow As Long
-    finalBottomRow = lastItemDESRow + 2 + 4
-    
-    Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(1, 1), wsDES.Cells(finalBottomRow, maxColumns)))
-    Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(1, 1), wsDES.Cells(section2Offset - 1, maxColumns)))
-    
-    If lastItemDESRow >= section2Offset Then
-        Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(section2Offset + 1, 1), wsDES.Cells(lastItemDESRow + 1, maxColumns)))
-    End If
-    Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(lastItemDESRow + 2, 1), wsDES.Cells(finalBottomRow, maxColumns)))
+    Dim section1Bottom As Long
+    Dim section2Top As Long, section2Bottom As Long
+    Dim footerTop As Long, footerBottom As Long
+
+    ' Section 1 bottom = row before Section 2 headers
+    section1Bottom = section2Offset - 1
+
+    ' Section 2 top = first header row of section 2
+    section2Top = section2Offset + 1
+
+    ' Section 2 bottom = last item row in Section 2 including subtotal/unassigned/total
+    section2Bottom = lastItemDESRow
+
+    ' Footer = 2 rows after last item row (or adjust if needed)
+    footerTop = lastItemDESRow + 1
+    footerBottom = wsDES.Cells(wsDES.Rows.count, "B").End(xlUp).Row
+
+    ' Apply outline borders
+    ' Section 1
+    Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(1, 1), wsDES.Cells(section1Bottom, maxColumns)))
+
+    ' Section 2
+    Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(section2Top, 1), wsDES.Cells(section2Bottom, maxColumns)))
+
+    ' Footer
+    Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(footerTop, 1), wsDES.Cells(footerBottom, maxColumns)))
 End Sub
+
+
 
 Sub Apply_Print_Settings(ws As Worksheet)
     With ws.PageSetup
@@ -446,20 +496,23 @@ Sub Apply_Print_Settings(ws As Worksheet)
     End With
 End Sub
 
-Sub Finalize_DES_Sheet(wsDES As Worksheet, wsProjectInfo As Worksheet, maxColumns As Long, section2Offset As Long)
-    Dim lastItemDESRow As Long
+Sub Finalize_DES_Sheet(wsDES As Worksheet, wsProjectInfo As Worksheet, maxColumns As Long, section2Offset As Long, routeCount As Long)
+    ' AutoFit the Item and Number rows for first section
     wsDES.Rows(3).EntireRow.AutoFit
     wsDES.Rows(4).EntireRow.AutoFit
-    wsDES.Rows(3 + section2Offset).EntireRow.AutoFit
-    wsDES.Rows(4 + section2Offset).EntireRow.AutoFit
+    
+    ' AutoFit the Item and Number rows for second section (only if they have content)
+    If wsDES.Cells(3 + section2Offset, 2).Value <> "" Then wsDES.Rows(3 + section2Offset).EntireRow.AutoFit
+    If wsDES.Cells(4 + section2Offset, 2).Value <> "" Then wsDES.Rows(4 + section2Offset).EntireRow.AutoFit
 
-    lastItemDESRow = wsDES.Cells(wsDES.Rows.count, "B").End(xlUp).Row
-    If lastItemDESRow >= section2Offset - 1 Then
-        Call Add_Footer_Info(wsDES, wsProjectInfo, maxColumns, lastItemDESRow + 2)
-        Call Apply_Final_Borders(wsDES, maxColumns, lastItemDESRow, section2Offset)
-    Else
-        lastItemDESRow = wsDES.Cells(wsDES.Rows.count, "A").End(xlUp).Row
-        If lastItemDESRow > 1 Then Call Apply_Outline_Border(wsDES.Range(wsDES.Cells(1, 1), wsDES.Cells(lastItemDESRow, maxColumns)))
-    End If
+    ' Place footer immediately after the second section's "Total" row
+    ' Section 2 ends at: section2Offset + 8 + routeCount
+    Dim footerStartRow As Long
+    footerStartRow = section2Offset + 8 + routeCount + 1
+
+    Call Add_Footer_Info(wsDES, wsProjectInfo, maxColumns, footerStartRow)
+
+    ' Apply bold borders: One for Section 1, and one for Section 2 + Footer combined
+    Call Apply_Final_Borders(wsDES, maxColumns, section2Offset, footerStartRow)
 End Sub
 
