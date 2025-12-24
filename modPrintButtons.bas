@@ -6,21 +6,30 @@ Option Explicit
 
 Sub PrintItemListToPDF()
     ExportToPDF ThisWorkbook.Sheets("ItemList"), "Estimate-ItemList", "ProjNumDOT"
+    
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Print: ItemList", "Item List exported to PDF")
 End Sub
 
 Sub PrintSummaryCDMToPDF()
     ExportToPDF ThisWorkbook.Sheets("SummaryCDM"), "CDM-Estimate-Summary", "ProjNumDOT"
+    
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Print: SummaryCDM", "CDM Summary exported to PDF")
 End Sub
 
 Sub PrintSummaryDOTToPDF()
     ExportToPDF ThisWorkbook.Sheets("SummaryDOT"), "DOT-Estimate-Summary", "ProjNumDOT"
+    
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Print: SummaryDOT", "DOT Summary exported to PDF")
 End Sub
 
 Sub PrintThisItemBreakout()
     Dim ws As Worksheet: Set ws = ActiveSheet
     Dim itemName As String
     
-    ' Validate it's a breakout sheet (IsNumeric check)
+    ' Validate it's a breakout sheet
     If Not IsNumeric(Left(ws.name, 1)) Then
         MsgBox "This does not appear to be an Item Breakout sheet.", vbExclamation
         Exit Sub
@@ -28,6 +37,12 @@ Sub PrintThisItemBreakout()
     
     itemName = Replace(ws.Range("C9").Value, " ", "-")
     ExportToPDF ws, ws.name & "_" & itemName, "ProjNumDOT"
+    
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange( _
+        "Print: Item Breakout", _
+        "Item: #" & ws.name & " " & Replace(ws.Range("C9").Value, vbCrLf, " ") & " exported to PDF" _
+    )
 End Sub
 
 Sub PrintAll_CombinedPDF()
@@ -38,7 +53,7 @@ Sub PrintAll_CombinedPDF()
     
     Set outputSheets = New Collection
     
-    ' 1) Sort (Passing False for no MessageBox)
+    ' 1) Sort breakout tabs (silent)
     Call SortItemBreakoutTabs(False)
     
     ' 2) Define standard sheets
@@ -47,20 +62,25 @@ Sub PrintAll_CombinedPDF()
     
     ' 3) Add breakout sheets
     For Each ws In ThisWorkbook.Worksheets
-    
         If IsNumeric(Left(ws.name, 7)) Then
             outputSheets.Add ws.name
         End If
     Next ws
     
-    ' 4) Convert Collection to Array for the .Select method
+    ' 4) Convert Collection to Array
     ReDim sheetArray(0 To outputSheets.count - 1)
     For i = 1 To outputSheets.count
         sheetArray(i - 1) = outputSheets(i)
     Next i
     
-    ' 5) Export the array of sheets
+    ' 5) Export
     ExportToPDF sheetArray, "Cost-Estimate", "ProjNumDOT"
+    
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange( _
+        "Print: Full Estimate", _
+        "Summary, Item List, and all Item Breakouts exported to PDF" _
+    )
 End Sub
 
 Sub ExportDEStoPDF()
@@ -69,12 +89,11 @@ Sub ExportDEStoPDF()
     Dim count As Long
     
     count = 0
-    ' 1. Collect all sheet names starting with "DES_"
     For Each ws In ThisWorkbook.Worksheets
-        If Left(ws.Name, 4) = "DES_" Then
+        If Left(ws.name, 4) = "DES_" Then
             count = count + 1
             ReDim Preserve desSheetNames(0 To count - 1)
-            desSheetNames(count - 1) = ws.Name
+            desSheetNames(count - 1) = ws.name
         End If
     Next ws
     
@@ -83,13 +102,15 @@ Sub ExportDEStoPDF()
         Exit Sub
     End If
     
-    ' 2. We pass the array of sheet names, the suffix, and the Named Range for the ID
     ExportToPDF desSheetNames, "DES", "ProjNumDOT"
     
-    ' 3. Clean up: Return focus to the first DES sheet
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Print: DES", "Detailed Estimate Sheets exported to PDF")
+    
     On Error Resume Next
-    ThisWorkbook.Sheets("DES_1").Select
+   ' ThisWorkbook.Sheets("DES_1").Select
 End Sub
+
 
 
 '===========================================================
@@ -105,9 +126,13 @@ Private Sub ExportToPDF(sheetTarget As Variant, suffix As String, idRange As Str
     Dim fileName As String
     Dim fullPath As String
     Dim currentDate As String
+    Dim originalSheet As Worksheet
     
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
+    
+    ' Capture where the user started
+    Set originalSheet = ActiveSheet
     
     ' Get Project ID using helper
     projectID = GetProjectID(idRange)
@@ -121,17 +146,21 @@ Private Sub ExportToPDF(sheetTarget As Variant, suffix As String, idRange As Str
     If IsArray(sheetTarget) Then
         ThisWorkbook.Sheets(sheetTarget).Select
         ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, fileName:=fullPath, OpenAfterPublish:=True
-        ThisWorkbook.Sheets("ItemList").Select ' Return to home base
+
     Else
         sheetTarget.ExportAsFixedFormat Type:=xlTypePDF, fileName:=fullPath, OpenAfterPublish:=True
     End If
     
+CleanExit:
+    If Not originalSheet Is Nothing Then originalSheet.Activate
     Application.ScreenUpdating = True
+    
     MsgBox "PDF Created Successfully:" & vbCrLf & fileName, vbInformation, "Success"
     Exit Sub
 
 ErrorHandler:
     Application.ScreenUpdating = True
+    If Not originalSheet Is Nothing Then originalSheet.Activate
     MsgBox "Error creating PDF: " & Err.Description, vbCritical, "Error"
 End Sub
 
