@@ -1,7 +1,7 @@
 Option Explicit
 ' This macro is for physically ordering the item breakout tabs
 
-Sub SortItemBreakoutTabs(Optional showMsg As Boolean = True)
+Sub SortItemBreakoutTabs(Optional showMsg As Boolean = True, Optional restoreSheet As Boolean = True)
     Dim ws As Worksheet
     Dim itemSheets() As String
     Dim sortKeys() As Long
@@ -9,12 +9,17 @@ Sub SortItemBreakoutTabs(Optional showMsg As Boolean = True)
     Dim tempName As String
     Dim tempKey As Long
     Dim numericPart As String
+    Dim originalSheet As Worksheet
+    
     
     ' 1) Optimization: Turn off "noise" that slows down execution
     On Error GoTo CleanUp
     Application.ScreenUpdating = False
     Application.Calculation = xlCalculationManual
     Application.EnableEvents = False
+
+    Set originalSheet = ActiveSheet
+
 
     ' 2) Capture item breakout sheet names
     ' Pre-size the array to total worksheets to avoid constant ReDim Preserve
@@ -62,6 +67,11 @@ Sub SortItemBreakoutTabs(Optional showMsg As Boolean = True)
 
 CleanUp:
     ' 5) Restore settings
+    
+    If restoreSheet Then
+        If Not originalSheet Is Nothing Then originalSheet.Activate
+    End If
+    
     Application.ScreenUpdating = True
     Application.Calculation = xlCalculationAutomatic
     Application.EnableEvents = True
