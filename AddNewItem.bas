@@ -211,6 +211,10 @@ CleanExit:
     Call UpdateEstimateMetaData
     Call LogEstimateChange("Macro: AddNewItem", "Item: #" & itemNum & " " & itemName & " Added")
 
+    ' --- Mark DES as out of date ---
+    DESOutOfDate = True
+
+
 End Sub
 
 

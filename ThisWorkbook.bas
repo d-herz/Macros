@@ -161,7 +161,6 @@ End Sub
 
 
 Private Sub StoreSummaryOldValues(ws As Worksheet)
-    Dim nm As name
     ' Initialize dictionary
     If SummaryOldValues Is Nothing Then Set SummaryOldValues = CreateObject("Scripting.Dictionary")
     
@@ -255,3 +254,9 @@ SafeExit:
 End Sub
 
 
+
+
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    On Error Resume Next
+    If MetaHideTime <> 0 Then Application.OnTime MetaHideTime, "AutoHideMetaSheets", , False
+End Sub

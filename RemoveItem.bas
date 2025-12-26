@@ -93,7 +93,9 @@ Sub RemoveItem()
     ' Log the change in _MetaData
     Call LogEstimateChange("Macro: RemoveItem", "Item: #" & itemNum & " " & itemName & " Removed")
 
-    
+
+    ' --- Mark DES as out of date ---
+    DESOutOfDate = True
     
 End Sub
 

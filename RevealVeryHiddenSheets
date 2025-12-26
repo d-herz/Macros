@@ -1,3 +1,6 @@
+Public MetaHideTime As Date
+Public Const MetaHideMinutes As Double = 10
+
 Sub RevealMetaDataSheets()
     Dim ws As Worksheet
     Dim sheetNames As Variant
@@ -50,11 +53,8 @@ CleanExit:
     Application.ScreenUpdating = True
 End Sub
 
-
 Sub ScheduleMetaAutoHide()
-    ' Auto-hide after 5 minutes
-    MetaHideTime = Now + TimeValue("00:10:00")
-    
+    MetaHideTime = Now + TimeSerial(0, MetaHideMinutes, 0)
     On Error Resume Next
     Application.OnTime MetaHideTime, "AutoHideMetaSheets"
     On Error GoTo 0
@@ -62,7 +62,9 @@ End Sub
 
 Sub CancelMetaAutoHide()
     On Error Resume Next
-    Application.OnTime MetaHideTime, "AutoHideMetaSheets", , False
+    If MetaHideTime <> 0 Then
+        Application.OnTime MetaHideTime, "AutoHideMetaSheets", , False
+    End If
     On Error GoTo 0
 End Sub
 

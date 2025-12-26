@@ -1,7 +1,12 @@
 Option Explicit
 
+Sub GenerateDES_Button()
+    Call GenerateDES(True)
+    DESOutOfDate = False
+End Sub
 
-Sub GenerateDES()
+
+Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
     ' -------------------------
     ' SPEED SWITCHES ON
     ' -------------------------
@@ -271,14 +276,23 @@ Sub GenerateDES()
     ThisWorkbook.Sheets("DES_1").Select
     On Error GoTo ErrorHandler
 
-    ' Prompt user for PDF export
-    Dim exportAnswer As VbMsgBoxResult
-    exportAnswer = MsgBox("Detailed Estimate Sheets generated successfully!" & vbCrLf & vbCrLf & _
-                          "Would you like to export them to PDF now?", vbYesNo + vbQuestion, "Export to PDF")
-                          
-    If exportAnswer = vbYes Then
-        Call ExportDEStoPDF
+    ' Prompt user for PDF export (only when run manually)
+    
+    If ExportPrompt Then
+        Dim exportAnswer As Long
+    
+        exportAnswer = MsgBox( _
+            "Detailed Estimate Sheets generated successfully!" & vbCrLf & vbCrLf & _
+            "Would you like to export them to PDF now?", _
+            vbYesNo + vbQuestion, _
+            "Export to PDF" _
+        )
+        
+        If exportAnswer = vbYes Then
+            Call ExportDEStoPDF
+        End If
     End If
+                              
 
 FinalCleanUp:
     With Application

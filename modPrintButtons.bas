@@ -1,5 +1,8 @@
 Option Explicit
 
+
+Public DESOutOfDate As Boolean
+
 '===========================================================
 ' 1) BUTTON MACROS
 '===========================================================
@@ -98,7 +101,20 @@ Sub ExportDEStoPDF()
     Next ws
     
     If count = 0 Then
-        MsgBox "No Detailed Estimate Sheets (DES) found to export.", vbExclamation
+        Dim userResponse As VbMsgBoxResult
+        
+        userResponse = MsgBox("No Detailed Estimate Sheets (DES) were found." & vbCrLf & vbCrLf & _
+        "Would you like to generate the DES sheets now?", _
+        vbQuestion + vbYesNo, _
+        "Generate DES Sheets?")
+        
+        If userResponse = vbYes Then
+            Call GenerateDES
+            
+            ' Rerun the export after generating the DES
+            Call ExportDEStoPDF
+        End If
+            
         Exit Sub
     End If
     
