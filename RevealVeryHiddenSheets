@@ -1,10 +1,31 @@
-Public MetaHideTime As Date
-Public Const MetaHideMinutes As Double = 10
+Option Explicit
 
+' -------------------------
+' Module-level variables
+' -------------------------
+Public MetaHideTime As Date
+Public Const MetaHideMinutes As Double = 10 ' Auto-hide delay in minutes
+
+
+' -------------------------
+' Helper: check if a sheet exists
+' -------------------------
+Function SheetExists(sheetName As String) As Boolean
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(sheetName)
+    SheetExists = Not ws Is Nothing
+    On Error GoTo 0
+End Function
+
+
+' -------------------------
+' Toggle Meta Sheets
+' -------------------------
 Sub RevealMetaDataSheets()
     Dim ws As Worksheet
     Dim sheetNames As Variant
-    Dim name As Variant
+    Dim sheetLoop As Variant
     Dim makeVisible As Boolean
     Dim dash As Worksheet
     Dim btn As Shape
@@ -12,40 +33,44 @@ Sub RevealMetaDataSheets()
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     
-    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList", "_UnitPrices")
+    sheetNames = Array("_ErrorReport", "_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList", "_UnitPrices")
     Set dash = ThisWorkbook.Sheets("Dash")
     Set btn = dash.Shapes("btnToggleHiddenSheets")
     
-    ' Decide whether to show or hide
+    ' Determine whether to show or hide
     makeVisible = False
-    For Each name In sheetNames
-        Set ws = ThisWorkbook.Sheets(name)
-        If ws.Visible <> xlSheetVisible Then
-            makeVisible = True
-            Exit For
+    For Each sheetLoop In sheetNames
+        If SheetExists(CStr(sheetLoop)) Then
+            Set ws = ThisWorkbook.Sheets(CStr(sheetLoop))
+            If ws.Visible <> xlSheetVisible Then
+                makeVisible = True
+                Exit For
+            End If
         End If
-    Next name
+    Next sheetLoop
     
     ' Apply visibility
-    For Each name In sheetNames
-        Set ws = ThisWorkbook.Sheets(name)
-        If makeVisible Then
-            ws.Visible = xlSheetVisible
-        Else
-            ws.Visible = xlSheetVeryHidden
+    For Each sheetLoop In sheetNames
+        If SheetExists(CStr(sheetLoop)) Then
+            Set ws = ThisWorkbook.Sheets(CStr(sheetLoop))
+            If makeVisible Then
+                ws.Visible = xlSheetVisible
+            Else
+                ws.Visible = xlSheetVeryHidden
+            End If
         End If
-    Next name
+    Next sheetLoop
     
     ' Always stay on Dash
     dash.Activate
     
-    ' Update button label
+    ' Update button label and schedule/cancel auto-hide
     If makeVisible Then
         btn.TextFrame.Characters.Text = "Hide Meta Sheets"
-        Call ScheduleMetaAutoHide   ' start timer
+        ScheduleMetaAutoHide
     Else
         btn.TextFrame.Characters.Text = "Show Meta Sheets"
-        Call CancelMetaAutoHide     ' stop timer
+        CancelMetaAutoHide
     End If
     
 CleanExit:
@@ -53,41 +78,59 @@ CleanExit:
     Application.ScreenUpdating = True
 End Sub
 
+' -------------------------
+' Schedule auto-hide
+' -------------------------
 Sub ScheduleMetaAutoHide()
-    MetaHideTime = Now + TimeSerial(0, MetaHideMinutes, 0)
     On Error Resume Next
+    MetaHideTime = Now + TimeSerial(0, MetaHideMinutes, 0)
     Application.OnTime MetaHideTime, "AutoHideMetaSheets"
     On Error GoTo 0
 End Sub
 
+' -------------------------
+' Cancel auto-hide
+' -------------------------
 Sub CancelMetaAutoHide()
     On Error Resume Next
     If MetaHideTime <> 0 Then
         Application.OnTime MetaHideTime, "AutoHideMetaSheets", , False
+        MetaHideTime = 0
     End If
     On Error GoTo 0
 End Sub
 
-
+' -------------------------
+' Auto-hide procedure
+' -------------------------
 Sub AutoHideMetaSheets()
     Dim ws As Worksheet
     Dim dash As Worksheet
     Dim btn As Shape
     Dim sheetNames As Variant
-    Dim name As Variant
+    Dim sheetLoop As Variant
     
-    sheetNames = Array("_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList", "_UnitPrices")
+    sheetNames = Array("_ErrorReport", "_MetaData", "_ItemBreakoutTemplate", "_MasterItemBidList", "_UnitPrices")
     
-    For Each name In sheetNames
-        Set ws = ThisWorkbook.Sheets(name)
-        ws.Visible = xlSheetVeryHidden
-    Next name
+    ' Hide all meta sheets
+    For Each sheetLoop In sheetNames
+        If SheetExists(CStr(sheetLoop)) Then
+            Set ws = ThisWorkbook.Sheets(CStr(sheetLoop))
+            ws.Visible = xlSheetVeryHidden
+        End If
+    Next sheetLoop
     
-    Set dash = ThisWorkbook.Sheets("Dash")
-    Set btn = dash.Shapes("btnToggleHiddenSheets")
+    ' Update button label
+    If SheetExists("Dash") Then
+        Set dash = ThisWorkbook.Sheets("Dash")
+        If dash.Shapes.count > 0 Then
+            On Error Resume Next
+            Set btn = dash.Shapes("btnToggleHiddenSheets")
+            If Not btn Is Nothing Then btn.TextFrame.Characters.Text = "Show Meta Sheets"
+            On Error GoTo 0
+        End If
+    End If
     
-    btn.TextFrame.Characters.Text = "Show Meta Sheets"
-    ' dash.Activate
+    ' Reset timer
+    MetaHideTime = 0
 End Sub
-
-
