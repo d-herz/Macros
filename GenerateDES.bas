@@ -10,12 +10,9 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
     ' -------------------------
     ' SPEED SWITCHES ON
     ' -------------------------
-    With Application
-        .ScreenUpdating = False
-        .Calculation = xlCalculationManual
-        .EnableEvents = False
-        .DisplayAlerts = False
-    End With
+    FreezeUI
+    Application.DisplayAlerts = False
+    
 
     On Error GoTo ErrorHandler
 
@@ -295,12 +292,9 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
                               
 
 FinalCleanUp:
-    With Application
-        .ScreenUpdating = True
-        .Calculation = xlCalculationAutomatic
-        .EnableEvents = True
-        .DisplayAlerts = True
-    End With
+    UnfreezeUI
+    Application.DisplayAlerts = True
+    DESOutOfDate = False
     Exit Sub
 
 ErrorHandler:

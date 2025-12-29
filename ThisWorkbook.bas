@@ -31,25 +31,38 @@ End Sub
 ' ---------------- Workbook_Open ----------------
 Private Sub Workbook_Open()
     Dim ws As Worksheet
-    
-    ' ----------- Initialize dictionary (for tracking and logging value changes) ------------
+
+    On Error GoTo SafeExit
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+
+    ' -------- Initialize dictionary ----------
     If SheetOldValues Is Nothing Then
         Set SheetOldValues = CreateObject("Scripting.Dictionary")
     End If
-    
-    ' ----------- Existing zoom/page break preview ------------
+
+    ' -------- Existing zoom/page break logic ----------
     For Each ws In ThisWorkbook.Worksheets
         ws.Activate
         ActiveWindow.View = xlPageBreakPreview
         ActiveWindow.Zoom = 100
     Next ws
-    
+
     Call CancelMetaAutoHide
     Call AutoHideMetaSheets
-    
-    ' Set Dash as the active sheet at the end
+
+    ' -------- Metadata + logging ----------
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Workbook Opened", "Workbook Opened")
+
+    ' -------- Final landing sheet ----------
     Sheets("Dash").Activate
+
+SafeExit:
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
 End Sub
+
 
 
 
@@ -119,7 +132,7 @@ Private Sub StoreOldValues(ws As Worksheet)
     
     ' --- Store in dictionary ---
     If SheetOldValues Is Nothing Then Set SheetOldValues = CreateObject("Scripting.Dictionary")
-    Set SheetOldValues(ws.name) = oldValues   
+    Set SheetOldValues(ws.name) = oldValues
 End Sub
 
 
@@ -128,20 +141,27 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
     Dim oldValues As Collection
     Dim newSubtotal As Variant, newUnassigned As Variant
     
+    ' Exit if dictionary not initialized or sheet not stored
     If SheetOldValues Is Nothing Then Exit Sub
     If Not SheetOldValues.Exists(ws.name) Then Exit Sub
+    
     Set oldValues = SheetOldValues(ws.name)
     
     ' --- ProjectWide Subtotal ---
     Set subtotalCell = ws.Columns("K").Find(What:="ProjectWide Subtotal", LookAt:=xlWhole)
     If Not subtotalCell Is Nothing Then
         newSubtotal = subtotalCell.offset(0, 1).Value  ' Column L
-        If oldValues(1) <> Empty And newSubtotal <> oldValues(1) Then
-            Application.EnableEvents = False
-            Call LogEstimateChange("Manual Edit", _
-                "Item: #" & ws.name & ", ProjectWide Subtotal changed from " & oldValues(1) & " to " & newSubtotal)
-            Call UpdateEstimateMetaData
-            Application.EnableEvents = True
+        
+        ' Only log if value actually changed
+        If oldValues.count >= 1 Then
+            If newSubtotal <> oldValues(1) Then
+                Application.EnableEvents = False
+                Call LogEstimateChange("Manual Edit", _
+                    "Item: #" & ws.name & ", ProjectWide Subtotal changed from " & oldValues(1) & " to " & newSubtotal)
+                Call UpdateEstimateMetaData
+                DESOutOfDate = True
+                Application.EnableEvents = True
+            End If
         End If
     End If
     
@@ -149,18 +169,24 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
     Set unassignedCell = ws.Columns("K").Find(What:="Unassigned", LookAt:=xlWhole)
     If Not unassignedCell Is Nothing Then
         newUnassigned = unassignedCell.offset(0, -1).Value  ' Column J
-        If oldValues(2) <> Empty And newUnassigned <> oldValues(2) Then
-            Application.EnableEvents = False
-            Call LogEstimateChange("Manual Edit", _
-                "Item: #" & ws.name & ", Unassigned percentage changed from " & (oldValues(2) * 100) & "% to " & (newUnassigned * 100) & "%")
-            Call UpdateEstimateMetaData
-            Application.EnableEvents = True
+        
+        ' Only log if value actually changed
+        If oldValues.count >= 2 Then
+            If newUnassigned <> oldValues(2) Then
+                Application.EnableEvents = False
+                Call LogEstimateChange("Manual Edit", _
+                    "Item: #" & ws.name & ", Unassigned percentage changed from " & (oldValues(2) * 100) & "% to " & (newUnassigned * 100) & "%")
+                Call UpdateEstimateMetaData
+                DESOutOfDate = True
+                Application.EnableEvents = True
+            End If
         End If
     End If
 End Sub
 
 
 Private Sub StoreSummaryOldValues(ws As Worksheet)
+
     ' Initialize dictionary
     If SummaryOldValues Is Nothing Then Set SummaryOldValues = CreateObject("Scripting.Dictionary")
     
@@ -243,8 +269,6 @@ End Sub
 
 
 
-
-
 ' ---------------- Workbook_BeforeSave ----------------
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     On Error GoTo SafeExit
@@ -252,7 +276,6 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     ThisWorkbook.Names("LastUpdatedOn").RefersToRange.Value = Now
 SafeExit:
 End Sub
-
 
 
 

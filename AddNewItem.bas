@@ -2,6 +2,10 @@ Option Explicit
 
 Sub AddNewItem()
 
+
+    FreezeUI
+    On Error GoTo CleanExit
+
     Dim ws As Worksheet
     Dim itemNum As String
     Dim itemName As String
@@ -17,7 +21,8 @@ Sub AddNewItem()
     Dim key As Variant
     Dim found As Boolean
 
-    On Error GoTo CleanExit
+    Dim originalSheet As Worksheet
+    Set originalSheet = ThisWorkbook.Sheets("ItemList")
 
     '==============================
     ' ItemList setup
@@ -192,12 +197,13 @@ Sub AddNewItem()
 
             If namedRouteCount >= 2 Then
                 sectionsNeeded = namedRouteCount - 1
-                Call AddRouteSections_Rev(sectionsNeeded, newBreakout)
+                Call AddRouteSections(sectionsNeeded, newBreakout)
             End If
         End If
 
         newBreakout.Protect UserInterfaceOnly:=True
-        Call SortItemBreakoutTabs(False)
+        
+        Call SortItemBreakoutTabs(showMsg:=False, restoreSheet:=False) ' false, false is for not showing the msgbox and not restoring to the new breakout tab
 
     Else
         MsgBox "A breakout tab for item " & itemNum & " already exists.", vbExclamation
@@ -208,12 +214,17 @@ Sub AddNewItem()
 CleanExit:
     Application.CutCopyMode = False
     ws.Protect UserInterfaceOnly:=True
+    
     Call UpdateEstimateMetaData
     Call LogEstimateChange("Macro: AddNewItem", "Item: #" & itemNum & " " & itemName & " Added")
 
     ' --- Mark DES as out of date ---
     DESOutOfDate = True
-
+    
+    '------- Restore user back to original sheet (ItemList)----------
+    originalSheet.Activate
+    
+    UnfreezeUI
 
 End Sub
 
