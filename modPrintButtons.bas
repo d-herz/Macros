@@ -90,6 +90,17 @@ Sub ExportDEStoPDF()
     Dim ws As Worksheet
     Dim desSheetNames() As String
     Dim count As Long
+    Dim regen As VbMsgBoxResult
+
+    ' --- Check if DES is out of date ---
+    If DESOutOfDate Then
+        regen = MsgBox("The current DES may be out of date." & vbCrLf & _
+                       "Would you like to regenerate it now?", _
+                       vbExclamation + vbYesNo, "DES Out of Date")
+        If regen = vbYes Then
+            Call GenerateDES(False)
+        End If
+    End If
     
     count = 0
     For Each ws In ThisWorkbook.Worksheets
@@ -101,7 +112,7 @@ Sub ExportDEStoPDF()
     Next ws
     
     If count = 0 Then
-        Dim userResponse As VbMsgBoxResult
+        Dim userResponse As Long
         
         userResponse = MsgBox("No Detailed Estimate Sheets (DES) were found." & vbCrLf & vbCrLf & _
         "Would you like to generate the DES sheets now?", _
@@ -109,7 +120,7 @@ Sub ExportDEStoPDF()
         "Generate DES Sheets?")
         
         If userResponse = vbYes Then
-            Call GenerateDES
+            Call GenerateDES(False)
             
             ' Rerun the export after generating the DES
             Call ExportDEStoPDF

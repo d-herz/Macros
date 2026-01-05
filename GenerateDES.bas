@@ -255,7 +255,7 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
     Call Finalize_Category_Header(wsDES, catStartCol, colPtr, prevCategoryName, finalOffset)
 
     If Len(missingBreakouts) > 0 Then
-        MsgBox "The following breakout tabs were not found:" & vbCrLf & missingBreakouts, vbExclamation
+        MsgBox "The following breakout tabs were not found, and will not be included on the DES:" & vbCrLf & missingBreakouts, vbExclamation
     End If
 
     ' Finalize last sheet
