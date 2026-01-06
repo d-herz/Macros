@@ -94,12 +94,21 @@ Sub ExportDEStoPDF()
 
     ' --- Check if DES is out of date ---
     If DESOutOfDate Then
-        regen = MsgBox("The current DES may be out of date." & vbCrLf & _
-                       "Would you like to regenerate it now?", _
-                       vbExclamation + vbYesNo, "DES Out of Date")
-        If regen = vbYes Then
-            Call GenerateDES(False)
-        End If
+        regen = MsgBox("The current DES may be out of date." & vbCrLf & vbCrLf & _
+                   "Would you like to regenerate it now?", _
+                   vbExclamation + vbYesNoCancel, _
+                   "DES Out of Date")
+                   
+        Select Case regen
+            Case vbYes
+                Call GenerateDES(False)
+
+            Case vbNo
+            ' Continue without regenerating
+
+            Case vbCancel
+                Exit Sub
+        End Select
     End If
     
     count = 0
