@@ -7,29 +7,40 @@ Sub ValidateWorkbook()
     Dim reportRow As Long
     Dim errorTypes As Variant
     Dim sheetName As String
+    Dim erSheetExists As Boolean
     
     ' Define the errors to check
     errorTypes = Array(xlErrDiv0, xlErrNA, xlErrName, xlErrNull, xlErrNum, xlErrRef, xlErrValue)
     
-    ' Delete previous _ErrorReport sheet if it exists
-    Application.DisplayAlerts = False
-    On Error Resume Next
-    ThisWorkbook.Sheets("_ErrorReport").Delete
-    On Error GoTo 0
-    Application.DisplayAlerts = True
+    ' -------------------------
+    ' Delete previous _ErrorReport sheet safely
+    ' -------------------------
+    erSheetExists = False
+    If SheetExists("_ErrorReport") Then
+        Set errReport = ThisWorkbook.Sheets("_ErrorReport")
+        erSheetExists = True
+        ' Unhide if very hidden so it can be deleted
+        If errReport.Visible = xlSheetVeryHidden Then errReport.Visible = xlSheetVisible
+        ' Delete the sheet
+        Application.DisplayAlerts = False
+        errReport.Delete
+        Application.DisplayAlerts = True
+    End If
     
+    ' -------------------------
     ' Create new _ErrorReport sheet
-    Set errReport = ThisWorkbook.Sheets.Add
+    ' -------------------------
+    Set errReport = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets("Dash"))
     errReport.name = "_ErrorReport"
     
     ' Add date, time, and username at the top
-    errReport.Range("A1").Value = "Report Generated:"
-    errReport.Range("B1").Value = Now
-    errReport.Range("A2").Value = "User:"
-    errReport.Range("B2").Value = Environ("USERNAME")
+    errReport.Range("A1").value = "Report Generated:"
+    errReport.Range("B1").value = Now
+    errReport.Range("A2").value = "User:"
+    errReport.Range("B2").value = Environ("USERNAME")
     
     ' Set headers starting at row 4
-    errReport.Range("A4:D4").Value = Array("Sheet Name", "Cell Address", "Error Type", "Link")
+    errReport.Range("A4:D4").value = Array("Sheet Name", "Cell Address", "Error Type", "Link")
     
     ' Format headers: bold, underline, center, thick bottom border
     With errReport.Range("A4:D4")
@@ -42,7 +53,9 @@ Sub ValidateWorkbook()
     
     reportRow = 5 ' Start adding errors below headers
     
+    ' -------------------------
     ' Loop through sheets
+    ' -------------------------
     For Each ws In ThisWorkbook.Sheets
         sheetName = ws.name
         
@@ -65,9 +78,9 @@ Sub ValidateWorkbook()
                 If Not rng Is Nothing Then
                     For Each cell In rng
                         ' Add details to report
-                        errReport.Cells(reportRow, 1).Value = ws.name
-                        errReport.Cells(reportRow, 2).Value = cell.Address(False, False)
-                        errReport.Cells(reportRow, 3).Value = cell.Text
+                        errReport.Cells(reportRow, 1).value = ws.name
+                        errReport.Cells(reportRow, 2).value = cell.Address(False, False)
+                        errReport.Cells(reportRow, 3).value = cell.Text
                         ' Add hyperlink to cell
                         errReport.Hyperlinks.Add Anchor:=errReport.Cells(reportRow, 4), _
                             Address:="", SubAddress:="'" & ws.name & "'!" & cell.Address, _

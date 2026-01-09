@@ -60,14 +60,14 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
     With wsProjectInfo.ListObjects("ProjectRoutes")
         routeCount = 0
         For i = 1 To .ListRows.count
-            If Trim(.DataBodyRange(i, 1).Value) <> "" Then routeCount = routeCount + 1
+            If Trim(.DataBodyRange(i, 1).value) <> "" Then routeCount = routeCount + 1
         Next i
         
         ReDim routeList(1 To IIf(routeCount = 0, 1, routeCount))
         Dim idx As Long: idx = 1
         For i = 1 To .ListRows.count
-            If Trim(.DataBodyRange(i, 1).Value) <> "" Then
-                routeList(idx) = .DataBodyRange(i, 1).Value
+            If Trim(.DataBodyRange(i, 1).value) <> "" Then
+                routeList(idx) = .DataBodyRange(i, 1).value
                 idx = idx + 1
             End If
         Next i
@@ -87,7 +87,7 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
     End If
     
     Set ItemListRange = wsItemList.Range(wsItemList.Cells(7, COL_ITEM_NUM), wsItemList.Cells(lastItemRow, COL_UNIT))
-    ItemListData = ItemListRange.Value
+    ItemListData = ItemListRange.value
     
     itemCount = 0
     currentCategoryInList = ""
@@ -193,7 +193,7 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
                 lastBreakoutRow = wsBreakout.Cells(wsBreakout.Rows.count, "K").End(xlUp).Row
                 
                 If lastBreakoutRow >= 1 Then
-                    BreakoutData = wsBreakout.Range("K1:L" & lastBreakoutRow).Value
+                    BreakoutData = wsBreakout.Range("K1:L" & lastBreakoutRow).value
                 Else
                     ReDim BreakoutData(1 To 1, 1 To 2)
                 End If
@@ -214,26 +214,26 @@ Sub GenerateDES(Optional ByVal ExportPrompt As Boolean = True)
 
                 ' Item placement (Standard logic continues...)
                 wsDES.Cells(3 + currentOffset, colPtr).NumberFormat = "@"
-                wsDES.Cells(3 + currentOffset, colPtr).Value = CStr(itemData(1, i))
-                wsDES.Cells(2 + currentOffset, colPtr).Value = IIf(LCase(Trim(itemData(2, i))) = "a", "A", "")
-                wsDES.Cells(4 + currentOffset, colPtr).Value = itemData(3, i)
+                wsDES.Cells(3 + currentOffset, colPtr).value = CStr(itemData(1, i))
+                wsDES.Cells(2 + currentOffset, colPtr).value = IIf(LCase(Trim(itemData(2, i))) = "a", "A", "")
+                wsDES.Cells(4 + currentOffset, colPtr).value = itemData(3, i)
                 wsDES.Cells(4 + currentOffset, colPtr).WrapText = True
 
                 With wsDES.Cells(5 + currentOffset, colPtr)
-                    .Value = UCase(Trim(itemData(4, i)))
+                    .value = UCase(Trim(itemData(4, i)))
                     .HorizontalAlignment = xlCenter
                     .VerticalAlignment = xlCenter
                     .Font.Bold = True
                 End With
 
                 For j = 1 To routeCount
-                    wsDES.Cells(5 + j + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, routeList(j) & " Subtotal")
+                    wsDES.Cells(5 + j + currentOffset, colPtr).value = GetQuantityFromArray(BreakoutData, routeList(j) & " Subtotal")
                     wsDES.Cells(5 + j + currentOffset, colPtr).HorizontalAlignment = xlCenter
                 Next j
 
-                wsDES.Cells(6 + routeCount + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "ProjectWide Subtotal")
-                wsDES.Cells(7 + routeCount + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "Unassigned")
-                wsDES.Cells(8 + routeCount + currentOffset, colPtr).Value = GetQuantityFromArray(BreakoutData, "Total")
+                wsDES.Cells(6 + routeCount + currentOffset, colPtr).value = GetQuantityFromArray(BreakoutData, "ProjectWide Subtotal")
+                wsDES.Cells(7 + routeCount + currentOffset, colPtr).value = GetQuantityFromArray(BreakoutData, "Unassigned")
+                wsDES.Cells(8 + routeCount + currentOffset, colPtr).value = GetQuantityFromArray(BreakoutData, "Total")
                 wsDES.Range(wsDES.Cells(6 + routeCount + currentOffset, colPtr), wsDES.Cells(8 + routeCount + currentOffset, colPtr)).HorizontalAlignment = xlCenter
 
                 With wsDES.Range(wsDES.Cells(2 + currentOffset, colPtr), wsDES.Cells(4 + currentOffset, colPtr))
@@ -327,7 +327,7 @@ Sub Add_Row_Headers(wsDES As Worksheet, routeList() As String, routeCount As Lon
     headers(8 + routeCount, 1) = "Total"
     
     ' Apply labels to Column A
-    wsDES.Cells(1 + offset, 1).Resize(UBound(headers, 1), 1).Value = headers
+    wsDES.Cells(1 + offset, 1).Resize(UBound(headers, 1), 1).value = headers
     wsDES.Columns("A").EntireColumn.AutoFit
 
     ' Format column A
@@ -345,7 +345,7 @@ Sub Add_Row_Headers(wsDES As Worksheet, routeList() As String, routeCount As Lon
 
     ' Row Height Logic: Specifically target the "Item" row (4th row of section)
     ' If there is no item data in Column B, set height to 256
-    If wsDES.Cells(4 + offset, 2).Value = "" Then
+    If wsDES.Cells(4 + offset, 2).value = "" Then
         wsDES.Rows(4 + offset).RowHeight = 256
     End If
 
@@ -372,7 +372,7 @@ Sub Finalize_Category_Header(wsDES As Worksheet, ByVal catStartCol As Long, ByVa
         headerRange.Merge
         
         With headerRange
-            .Value = prevCategoryName
+            .value = prevCategoryName
             .HorizontalAlignment = xlCenter
             .VerticalAlignment = xlCenter
             .Font.Bold = True
@@ -403,13 +403,13 @@ Sub Add_Footer_Info(wsDES As Worksheet, wsProjectInfo As Worksheet, maxColumns A
     dataRow = startRow + 1
     Dim ColAText, ColBData
     ColAText = Array("State Project No.", "Project Name", "District", "Towns")
-    ColBData = Array(wsSummaryCDM.Range("C7").Value, wsSummaryCDM.Range("B5").Value, wsProjectInfo.Range("D10").Value, wsSummaryCDM.Range("C9").Value)
+    ColBData = Array(wsSummaryCDM.Range("C7").value, wsSummaryCDM.Range("B5").value, wsProjectInfo.Range("D10").value, wsSummaryCDM.Range("C9").value)
     
     For i = 0 To 3
-        wsDES.Cells(dataRow + i, "A").Value = ColAText(i)
+        wsDES.Cells(dataRow + i, "A").value = ColAText(i)
         With wsDES.Range(wsDES.Cells(dataRow + i, 2), wsDES.Cells(dataRow + i, maxColumns))
             .Merge
-            .Value = ColBData(i)
+            .value = ColBData(i)
             .HorizontalAlignment = xlCenter
             .VerticalAlignment = xlCenter
             .Borders.LineStyle = xlContinuous
@@ -430,13 +430,7 @@ Sub Add_Footer_Info(wsDES As Worksheet, wsProjectInfo As Worksheet, maxColumns A
     End With
 End Sub
 
-Function SheetExists(sheetName As String) As Boolean
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Sheets(sheetName)
-    On Error GoTo 0
-    SheetExists = Not ws Is Nothing
-End Function
+
 
 Function GetQuantityFromArray(DataArray, label As String) As Double
     Dim k As Long
@@ -510,8 +504,8 @@ Sub Finalize_DES_Sheet(wsDES As Worksheet, wsProjectInfo As Worksheet, maxColumn
     wsDES.Rows(4).EntireRow.AutoFit
     
     ' AutoFit the Item and Number rows for second section (only if they have content)
-    If wsDES.Cells(3 + section2Offset, 2).Value <> "" Then wsDES.Rows(3 + section2Offset).EntireRow.AutoFit
-    If wsDES.Cells(4 + section2Offset, 2).Value <> "" Then wsDES.Rows(4 + section2Offset).EntireRow.AutoFit
+    If wsDES.Cells(3 + section2Offset, 2).value <> "" Then wsDES.Rows(3 + section2Offset).EntireRow.AutoFit
+    If wsDES.Cells(4 + section2Offset, 2).value <> "" Then wsDES.Rows(4 + section2Offset).EntireRow.AutoFit
 
     ' Place footer immediately after the second section's "Total" row
     ' Section 2 ends at: section2Offset + 8 + routeCount

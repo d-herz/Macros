@@ -2,13 +2,14 @@ Option Explicit
 
 ' Dev_Mode should be set to True only when working on and testing this macro
 ' Flip to 'False' for production
-Public Const DEV_MODE As Boolean = True
+Public Const DEV_MODE As Boolean = False
 
 Private Const DEV_PROJECT_NUMBER As String = "DEV-TEST-0001"
 Private Const DEV_FOLDER_NAME As String = "SCE_DEV"
 
 Public Sub CreateNewProject()
-    Dim projectNumber As String
+    Dim sourceProjectNumber As String
+    Dim newProjectNumber As String
     Dim baseFolder As String
     Dim desktopPath As String
     Dim newFilePath As String
@@ -17,6 +18,8 @@ Public Sub CreateNewProject()
     Dim wbNew As Workbook
     
     Set wbSource = ThisWorkbook
+    
+    sourceProjectNumber = GetProjectNumberFromWorkbook(wbSource)
     
     ' -------------------------
     ' Resolve Desktop Path
@@ -28,15 +31,15 @@ Public Sub CreateNewProject()
     ' -------------------------
     If DEV_MODE Then
         Debug.Print "WARNING: DEV_MODE is enabled"
-        projectNumber = DEV_PROJECT_NUMBER
+        newProjectNumber = DEV_PROJECT_NUMBER
         baseFolder = desktopPath & "\" & DEV_FOLDER_NAME
     Else
         If Not ConfirmCreateNewProject() Then Exit Sub
         
-        projectNumber = PromptForProjectNumber()
-        If projectNumber = "" Then Exit Sub
+        newProjectNumber = PromptForProjectNumber()
+        If newProjectNumber = "" Then Exit Sub
         
-        baseFolder = desktopPath & "\" & projectNumber
+        baseFolder = desktopPath & "\" & newProjectNumber
     End If
     
     ' -------------------------
@@ -47,7 +50,7 @@ Public Sub CreateNewProject()
     ' -------------------------
     ' Build File Name
     ' -------------------------
-    newFileName = projectNumber & "_Standard_Cost_Estimate.xlsm"
+    newFileName = newProjectNumber & "_Cost-Estimate.xlsm"
     newFilePath = baseFolder & "\" & newFileName
     
     ' -------------------------
@@ -69,9 +72,9 @@ Public Sub CreateNewProject()
     Set wbNew = Workbooks.Open(newFilePath)
     
     ' Call InitializeNewProject
-    InitializeNewProject wbNew
+    InitializeNewProject wbNew, sourceProjectNumber
     
-    'Call UpdateEstimateMetaData(ThisWorkbook)
+    Call UpdateEstimateMetaData(ThisWorkbook)
     Call LogEstimateChange("Project Created", "New project file generated from this workbook")
 
     
@@ -141,7 +144,7 @@ End Function
 
 ' -----------------------Central initializer sub-----------------------------
 
-Public Sub InitializeNewProject(ByVal wb As Workbook)
+Public Sub InitializeNewProject(ByVal wb As Workbook, Optional sourceProjectNumber As String = "")
     On Error GoTo CleanFail
     
     With Application
@@ -155,7 +158,7 @@ Public Sub InitializeNewProject(ByVal wb As Workbook)
     ResetProjectRoutes wb
     DeleteItemBreakoutTabs wb
     ResetItemList wb
-    ResetEstimateMetaData wb
+    ResetEstimateMetaData wb, sourceProjectNumber
 
 CleanExit:
     With Application
@@ -249,9 +252,9 @@ Private Sub ResetProjectRoutes(ByVal wb As Workbook)
     End If
 End Sub
 
-
 ' Helper sub for clearing out Item Breakout tabs
 ' Deletes all sheets EXCEPT the protected list, within the provided workbook
+
 Private Sub DeleteItemBreakoutTabs(ByVal wb As Workbook)
     Dim ws As Worksheet
     Dim protectedSheets As Object
@@ -272,18 +275,23 @@ Private Sub DeleteItemBreakoutTabs(ByVal wb As Workbook)
     protectedSheets("SummaryDOT") = True
     protectedSheets("ItemList") = True
 
+    ' Optional: treat _ErrorReport as deletable if present
+    ' It should not be protected, but only attempt to delete if it exists in new workbook
+
     Application.DisplayAlerts = False
 
-    ' IMPORTANT: loop backwards when deleting sheets
+    ' Loop backwards when deleting sheets
     For i = wb.Worksheets.count To 1 Step -1
         Set ws = wb.Worksheets(i)
         sheetName = ws.name
 
+        ' Delete any sheet that is NOT protected
         If Not protectedSheets.Exists(sheetName) Then
-            If DEV_MODE Then
-                Debug.Print "Deleting breakout tab in new workbook: " & sheetName
-            End If
+            On Error Resume Next     ' <-- safely ignore deletion errors
+            If DEV_MODE Then Debug.Print "Deleting breakout tab in new workbook: " & sheetName
+             ws.Visible = xlSheetVisible
             ws.Delete
+            On Error GoTo 0
         End If
     Next i
 
@@ -308,6 +316,8 @@ Private Sub ResetItemList(ByVal wb As Workbook)
     
     Set ws = wb.Worksheets("ItemList")
     
+    Const headerEndRow As Long = 6 ' Row for stopping the bottom up loop (to prevent deletion of a main header row)
+    
     ' -------------------------
     ' Handle protection
     ' -------------------------
@@ -322,7 +332,7 @@ Private Sub ResetItemList(ByVal wb As Workbook)
     lastRow = ws.Cells(ws.Rows.count, "B").End(xlUp).Row
     
     ' Loop bottom-up when deleting rows
-    For r = lastRow To 1 Step -1
+    For r = lastRow To headerEndRow Step -1
         
         ' Skip hidden rows (template rows)
         If ws.Rows(r).Hidden Then GoTo NextRow
@@ -364,11 +374,12 @@ End Sub
 
 
 ' Clears the estimate change log in _MetaData and logs initial project creation
-Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing)
+Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing, Optional sourceProjectNumber As String = "")
 
     Dim wb As Workbook
     Dim wsMeta As Worksheet
     Dim logTable As ListObject
+    Dim creationNote As String
     
     If targetWB Is Nothing Then
         Set wb = ThisWorkbook
@@ -387,10 +398,18 @@ Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing)
     ' Update metadata
     Call UpdateEstimateMetaData(wb)
     
+    If sourceProjectNumber <> "" Then
+        creationNote = "New project file created from Project #" & sourceProjectNumber
+    Else
+        creationNote = "New project file created from template"
+    End If
+    
     ' Log project creation
-    Call LogEstimateChange("Project Created", "New Project File Created", wb)
+    Call LogEstimateChange("Project Created", creationNote, wb)
 
 End Sub
+
+
 
 
 

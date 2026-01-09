@@ -91,4 +91,25 @@ Public Sub UnfreezeUI()
     End If
 End Sub
 
+' Helper function for grabbing the source (current workbook) project number (used in CreateNewProject for logging purposes)
+Public Function GetProjectNumberFromWorkbook(ByVal wb As Workbook) As String
+    On Error GoTo Fail
+
+    ' Use the named range "ProjNumDOT" as the authoritative source
+    GetProjectNumberFromWorkbook = Trim(wb.Names("ProjNumDOT").RefersToRange.value)
+    Exit Function
+
+Fail:
+    ' Return empty string if anything goes wrong
+    GetProjectNumberFromWorkbook = ""
+End Function
+
+' Helper for checking existence of sheet (used in GenerateDES, RevealMetaData, and ValidateWorkbook)
+Public Function SheetExists(sheetName As String) As Boolean
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Sheets(sheetName)
+    On Error GoTo 0
+    SheetExists = Not ws Is Nothing
+End Function
 
