@@ -27,6 +27,7 @@ Public Sub CreateNewProject()
     ' DEV MODE vs PRODUCTION
     ' -------------------------
     If DEV_MODE Then
+        Debug.Print "WARNING: DEV_MODE is enabled"
         projectNumber = DEV_PROJECT_NUMBER
         baseFolder = desktopPath & "\" & DEV_FOLDER_NAME
     Else
@@ -67,8 +68,12 @@ Public Sub CreateNewProject()
     wbSource.SaveCopyAs newFilePath
     Set wbNew = Workbooks.Open(newFilePath)
     
-    ' Placeholder for next phase: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    ' Call InitializeNewProject
     InitializeNewProject wbNew
+    
+    'Call UpdateEstimateMetaData(ThisWorkbook)
+    Call LogEstimateChange("Project Created", "New project file generated from this workbook")
+
     
     MsgBox "New project file created:" & vbCrLf & newFilePath, vbInformation
 End Sub
@@ -134,7 +139,7 @@ Private Function SanitizeFileName(ByVal fileName As String) As String
     SanitizeFileName = fileName
 End Function
 
-' Central initializer sub
+' -----------------------Central initializer sub-----------------------------
 
 Public Sub InitializeNewProject(ByVal wb As Workbook)
     On Error GoTo CleanFail
@@ -148,6 +153,9 @@ Public Sub InitializeNewProject(ByVal wb As Workbook)
     ResetProjectInfo wb
     ResetProjectTowns wb
     ResetProjectRoutes wb
+    DeleteItemBreakoutTabs wb
+    ResetItemList wb
+    ResetEstimateMetaData wb
 
 CleanExit:
     With Application
@@ -242,7 +250,147 @@ Private Sub ResetProjectRoutes(ByVal wb As Workbook)
 End Sub
 
 
+' Helper sub for clearing out Item Breakout tabs
+' Deletes all sheets EXCEPT the protected list, within the provided workbook
+Private Sub DeleteItemBreakoutTabs(ByVal wb As Workbook)
+    Dim ws As Worksheet
+    Dim protectedSheets As Object
+    Dim sheetName As String
+    Dim i As Long
 
+    ' Build protected sheet lookup
+    Set protectedSheets = CreateObject("Scripting.Dictionary")
+    protectedSheets.CompareMode = vbTextCompare
+
+    protectedSheets("Dash") = True
+    protectedSheets("_MetaData") = True
+    protectedSheets("_ItemBreakoutTemplate") = True
+    protectedSheets("_MasterItemBidList") = True
+    protectedSheets("_UnitPrices") = True
+    protectedSheets("ProjectInfo") = True
+    protectedSheets("SummaryCDM") = True
+    protectedSheets("SummaryDOT") = True
+    protectedSheets("ItemList") = True
+
+    Application.DisplayAlerts = False
+
+    ' IMPORTANT: loop backwards when deleting sheets
+    For i = wb.Worksheets.count To 1 Step -1
+        Set ws = wb.Worksheets(i)
+        sheetName = ws.name
+
+        If Not protectedSheets.Exists(sheetName) Then
+            If DEV_MODE Then
+                Debug.Print "Deleting breakout tab in new workbook: " & sheetName
+            End If
+            ws.Delete
+        End If
+    Next i
+
+    Application.DisplayAlerts = True
+End Sub
+
+
+' Logic for clearing out items from the ItemList tab
+' Preserves:
+'   - Category headers
+'   - Subheaders
+'   - Hidden template rows
+'   - Category totals
+'   - Spacer rows
+
+Private Sub ResetItemList(ByVal wb As Workbook)
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim r As Long
+    Dim itemVal As String
+    Dim wasProtected As Boolean
+    
+    Set ws = wb.Worksheets("ItemList")
+    
+    ' -------------------------
+    ' Handle protection
+    ' -------------------------
+    wasProtected = ws.ProtectContents
+    If wasProtected Then
+        ws.Unprotect    ' add Password:=... here if needed later
+    End If
+    
+    On Error GoTo CleanFail
+    
+    ' Determine last used row based on Item No. column (B)
+    lastRow = ws.Cells(ws.Rows.count, "B").End(xlUp).Row
+    
+    ' Loop bottom-up when deleting rows
+    For r = lastRow To 1 Step -1
+        
+        ' Skip hidden rows (template rows)
+        If ws.Rows(r).Hidden Then GoTo NextRow
+        
+        ' Skip merged rows (category headers / totals)
+        If ws.Cells(r, "B").MergeCells Then GoTo NextRow
+        
+        itemVal = Trim(ws.Cells(r, "B").value)
+        
+        ' Skip blanks and subheader row
+        If itemVal = "" Then GoTo NextRow
+        If itemVal = "Item No." Then GoTo NextRow
+        
+        ' Real item row ? delete
+        If DEV_MODE Then
+            Debug.Print "Deleting ItemList row " & r & _
+                        " (Item No: " & itemVal & ")"
+        End If
+        
+        ws.Rows(r).Delete
+        
+NextRow:
+    Next r
+
+CleanExit:
+    ' Re-protect if needed
+    If wasProtected Then
+        ws.Protect     ' add Password:=... here if needed later
+    End If
+    Exit Sub
+
+CleanFail:
+    ' Ensure protection is restored even on error
+    If wasProtected Then
+        ws.Protect
+    End If
+    Err.Raise Err.Number, Err.Source, Err.Description
+End Sub
+
+
+' Clears the estimate change log in _MetaData and logs initial project creation
+Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing)
+
+    Dim wb As Workbook
+    Dim wsMeta As Worksheet
+    Dim logTable As ListObject
+    
+    If targetWB Is Nothing Then
+        Set wb = ThisWorkbook
+    Else
+        Set wb = targetWB
+    End If
+    
+    Set wsMeta = wb.Worksheets("_MetaData")
+    Set logTable = wsMeta.ListObjects("TblChangeLog")
+    
+    ' Clear log
+    If logTable.ListRows.count > 0 Then
+        logTable.DataBodyRange.Delete
+    End If
+    
+    ' Update metadata
+    Call UpdateEstimateMetaData(wb)
+    
+    ' Log project creation
+    Call LogEstimateChange("Project Created", "New Project File Created", wb)
+
+End Sub
 
 
 
