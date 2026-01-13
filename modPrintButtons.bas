@@ -1,7 +1,9 @@
 Option Explicit
 
-
 Public DESOutOfDate As Boolean
+
+
+
 
 '===========================================================
 ' 1) BUTTON MACROS
@@ -38,13 +40,13 @@ Sub PrintThisItemBreakout()
         Exit Sub
     End If
     
-    itemName = Replace(ws.Range("C9").Value, " ", "-")
+    itemName = Replace(ws.Range("C9").value, " ", "-")
     ExportToPDF ws, ws.name & "_" & itemName, "ProjNumDOT"
     
     Call UpdateEstimateMetaData
     Call LogEstimateChange( _
         "Print: Item Breakout", _
-        "Item: #" & ws.name & " " & Replace(ws.Range("C9").Value, vbCrLf, " ") & " exported to PDF" _
+        "Item: #" & ws.name & " " & Replace(ws.Range("C9").value, vbCrLf, " ") & " exported to PDF" _
     )
 End Sub
 
@@ -91,6 +93,8 @@ Sub ExportDEStoPDF()
     Dim desSheetNames() As String
     Dim count As Long
     Dim regen As VbMsgBoxResult
+    Dim layout As DESLayoutType
+    
 
     ' --- Check if DES is out of date ---
     If DESOutOfDate Then
@@ -101,7 +105,9 @@ Sub ExportDEStoPDF()
                    
         Select Case regen
             Case vbYes
-                Call GenerateDES(False)
+                layout = PromptForDESLayout()
+               ' If layout = desLayout_Unknown Then Exit Sub
+                Call GenerateDES(layout, False)
 
             Case vbNo
             ' Continue without regenerating
@@ -129,7 +135,10 @@ Sub ExportDEStoPDF()
         "Generate DES Sheets?")
         
         If userResponse = vbYes Then
-            Call GenerateDES(False)
+            layout = PromptForDESLayout()
+            ' If layout = desLayout_Unknown Then Exit Sub
+            
+            Call GenerateDES(layout, False)
             
             ' Rerun the export after generating the DES
             Call ExportDEStoPDF
@@ -203,7 +212,7 @@ End Sub
 Private Function GetProjectID(cellAddress As String) As String
     Dim val As Variant
     On Error Resume Next
-    val = ThisWorkbook.Sheets("ProjectInfo").Range(cellAddress).Value
+    val = ThisWorkbook.Sheets("ProjectInfo").Range(cellAddress).value
     On Error GoTo 0
     
     If Trim(val) = "" Then
@@ -211,4 +220,29 @@ Private Function GetProjectID(cellAddress As String) As String
     Else
         GetProjectID = CStr(val)
     End If
+End Function
+
+
+
+' Helper used for ExportDEStoPDF
+Public Function PromptForDESLayout() As DESLayoutType
+    Dim resp As VbMsgBoxResult
+
+    resp = MsgBox( _
+        "Which DES layout would you like to generate?" & vbCrLf & vbCrLf & _
+        "Yes = 11 x 17 (Landscape)" & vbCrLf & _
+        "No  = 8.5 x 11 (Landscape)", _
+        vbQuestion + vbYesNoCancel, _
+        "Select DES Layout")
+
+    Select Case resp
+        Case vbYes
+            PromptForDESLayout = des11x17
+
+        Case vbNo
+            PromptForDESLayout = desLetter
+
+        'Case Else
+            ' PromptForDESLayout = desLayout_Unknown
+    End Select
 End Function
