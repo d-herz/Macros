@@ -2,9 +2,6 @@ Option Explicit
 
 Public DESOutOfDate As Boolean
 
-
-
-
 '===========================================================
 ' 1) BUTTON MACROS
 '===========================================================
@@ -49,6 +46,7 @@ Sub PrintThisItemBreakout()
         "Item: #" & ws.name & " " & Replace(ws.Range("C9").value, vbCrLf, " ") & " exported to PDF" _
     )
 End Sub
+' Sub for printing all of the delieverable sheets
 
 Sub PrintAll_CombinedPDF()
     Dim ws As Worksheet
@@ -106,7 +104,11 @@ Sub ExportDEStoPDF()
         Select Case regen
             Case vbYes
                 layout = PromptForDESLayout()
-               ' If layout = desLayout_Unknown Then Exit Sub
+                
+                If layout = desUnknown Then
+                    Exit Sub   ' user explicitly cancelled
+                End If
+                
                 Call GenerateDES(layout, False)
 
             Case vbNo
@@ -135,8 +137,11 @@ Sub ExportDEStoPDF()
         "Generate DES Sheets?")
         
         If userResponse = vbYes Then
-            layout = PromptForDESLayout()
-            ' If layout = desLayout_Unknown Then Exit Sub
+            layout = PromptForDESLayout() ' Helper function defined below (within this module)
+            
+            If layout = desUnknown Then
+                Exit Sub   ' user explicitly cancelled
+            End If
             
             Call GenerateDES(layout, False)
             
@@ -230,8 +235,8 @@ Public Function PromptForDESLayout() As DESLayoutType
 
     resp = MsgBox( _
         "Which DES layout would you like to generate?" & vbCrLf & vbCrLf & _
-        "Yes = 11 x 17 (Landscape)" & vbCrLf & _
-        "No  = 8.5 x 11 (Landscape)", _
+        "Yes = 11 x 17 (Landscape, no footer)" & vbCrLf & _
+        "No  = 8.5 x 11 (Landscape, with footer)", _
         vbQuestion + vbYesNoCancel, _
         "Select DES Layout")
 
@@ -242,7 +247,7 @@ Public Function PromptForDESLayout() As DESLayoutType
         Case vbNo
             PromptForDESLayout = desLetter
 
-        'Case Else
-            ' PromptForDESLayout = desLayout_Unknown
+        Case vbCancel
+            PromptForDESLayout = desUnknown
     End Select
 End Function
