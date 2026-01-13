@@ -1,10 +1,9 @@
 Option Explicit
 
-' note this is the current version being used in the Template excel file (once comfortable with it, we can remove the other VS code backup file)
-
 Public Enum DESLayoutType
-    desLetter
-    des11x17
+    desUnknown = 0
+    desLetter = 1
+    des11x17 = 2
 End Enum
 
 ' Helper subs for button assignments
@@ -329,11 +328,17 @@ FinalCleanUp:
     UnfreezeUI
     Application.DisplayAlerts = True
     DESOutOfDate = False
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Generate DES", "Detailed Estimate Sheets created (" & DESLayoutToString(layout) & ")")
+    
     Exit Sub
 
 ErrorHandler:
     MsgBox "An unexpected error occurred (" & Err.Number & "): " & Err.Description, vbCritical
     Resume FinalCleanUp
+    
+    
+    
 End Sub
 
 ' --------------------------
@@ -574,6 +579,20 @@ End Sub
 
 
 
+' Helper for loggging/tracking the size layout generated
+
+Public Function DESLayoutToString(layout As DESLayoutType) As String
+    Select Case layout
+        Case desLetter
+            DESLayoutToString = "8.5 x 11"
+
+        Case des11x17
+            DESLayoutToString = "11 x 17"
+
+        Case Else
+            DESLayoutToString = "Unknown Layout"
+    End Select
+End Function
 
 
 
