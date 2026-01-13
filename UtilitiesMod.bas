@@ -3,7 +3,6 @@ Private UIStack As Long
 
 
 ' Log change in the _MetaData hidden tab
-
 Public Sub LogEstimateChange(actionText As String, Optional detailsText As String = "", Optional targetWB As Workbook = Nothing)
     
     Dim wb As Workbook
@@ -12,7 +11,9 @@ Public Sub LogEstimateChange(actionText As String, Optional detailsText As Strin
     Dim newRow As ListRow
     Dim maxRows As Long
     Dim numRows As Long
+    Dim wasProtected As Boolean
     
+    On Error GoTo CleanFail   ' fail gracefully
     
      If targetWB Is Nothing Then
         Set wb = ThisWorkbook
@@ -21,9 +22,19 @@ Public Sub LogEstimateChange(actionText As String, Optional detailsText As Strin
     End If
     
     
-    maxRows = 200   'Set your maximum number of log entries
+    maxRows = 250   'Set your maximum number of log entries
 
     Set wsMeta = wb.Worksheets("_MetaData")
+    
+    
+    ' handle protection
+    wasProtected = wsMeta.ProtectContents
+    If wasProtected Then
+        wsMeta.Unprotect    ' add Password:=... later if needed
+    End If
+    
+    
+    
     Set logTable = wsMeta.ListObjects("tblChangeLog")
     
     'Insert new row at the top
@@ -46,6 +57,19 @@ Public Sub LogEstimateChange(actionText As String, Optional detailsText As Strin
             logTable.ListRows(i).Delete
         Next i
     End If
+      
+CleanExit:
+    ' -------------------------
+    ' Restore protection
+    ' -------------------------
+    If wasProtected Then
+        wsMeta.Protect
+    End If
+    Exit Sub
+
+CleanFail:
+    ' Logging should NEVER crash the parent macro
+    Resume CleanExit
 
 End Sub
 
