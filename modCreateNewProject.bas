@@ -2,7 +2,7 @@ Option Explicit
 
 ' Dev_Mode should be set to True only when working on and testing this macro
 ' Flip to 'False' for production
-Public Const DEV_MODE As Boolean = False
+Public Const DEV_MODE As Boolean = True
 
 Private Const DEV_PROJECT_NUMBER As String = "DEV-TEST-0001"
 Private Const DEV_FOLDER_NAME As String = "SCE_DEV"
@@ -380,6 +380,7 @@ Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing, Option
     Dim wsMeta As Worksheet
     Dim logTable As ListObject
     Dim creationNote As String
+    Dim wasProtected As Boolean
     
     If targetWB Is Nothing Then
         Set wb = ThisWorkbook
@@ -390,6 +391,12 @@ Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing, Option
     Set wsMeta = wb.Worksheets("_MetaData")
     Set logTable = wsMeta.ListObjects("TblChangeLog")
     
+    ' Handle sheet protection
+    wasProtected = wsMeta.ProtectContents
+    If wasProtected Then
+        wsMeta.Unprotect    ' add Password:=... here if needed later
+    End If
+    
     ' Clear log
     If logTable.ListRows.count > 0 Then
         logTable.DataBodyRange.Delete
@@ -398,6 +405,7 @@ Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing, Option
     ' Update metadata
     Call UpdateEstimateMetaData(wb)
     
+    'Build creation note
     If sourceProjectNumber <> "" Then
         creationNote = "New project file created from Project #" & sourceProjectNumber
     Else
@@ -407,6 +415,19 @@ Public Sub ResetEstimateMetaData(Optional targetWB As Workbook = Nothing, Option
     ' Log project creation
     Call LogEstimateChange("Project Created", creationNote, wb)
 
+CleanExit:
+    ' Restore protection if needed
+    If wasProtected Then
+        wsMeta.Protect    ' add Password:=... here if needed later
+    End If
+    Exit Sub
+
+CleanFail:
+    ' Ensure protection is restored even on error
+    If wasProtected Then
+        wsMeta.Protect
+    End If
+    Err.Raise Err.Number, Err.Source, Err.Description
 End Sub
 
 
