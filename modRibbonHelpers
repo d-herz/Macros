@@ -1,0 +1,113 @@
+Option Explicit
+' This module is for navigation macros placed in the Ribbon
+
+' Public variables for SheetPicker form cancellation
+Public g_PreviousSheet As Worksheet
+Public g_DidNavigate As Boolean
+
+
+' Public variables for the two-state sheet toggle (back button)
+Public g_LastSheet As Worksheet
+Public g_CurrentSheet As Worksheet
+
+' Ribbon Macros
+
+Sub GoToDash()
+    On Error Resume Next
+    Worksheets("Dash").Activate
+    If Err.Number <> 0 Then
+        MsgBox "Dash sheet not found!", vbExclamation
+    End If
+    On Error GoTo 0
+End Sub
+
+
+Sub GoToProjectInfo()
+    On Error Resume Next
+    Worksheets("ProjectInfo").Activate
+     Worksheets("ProjectInfo").Range("D6").Select
+    If Err.Number <> 0 Then MsgBox "ProjectInfo sheet not found!", vbExclamation
+    On Error GoTo 0
+End Sub
+
+Sub GoToSummaryCDM()
+    On Error Resume Next
+    Worksheets("SummaryCDM").Activate
+    Worksheets("SummaryCDM").Range("C11").Select
+    If Err.Number <> 0 Then MsgBox "SummaryCDM sheet not found!", vbExclamation
+    On Error GoTo 0
+End Sub
+
+Sub GoToItemList()
+    On Error Resume Next
+    Worksheets("ItemList").Activate
+    Worksheets("ItemList").Range("A1").Select
+    If Err.Number <> 0 Then MsgBox "ItemList sheet not found!", vbExclamation
+    On Error GoTo 0
+End Sub
+
+' --------------------------------------------------------------------
+' Two-state sheet toggle ("Back" button, essentially)
+
+Public Sub GoBackToPreviousSheet()
+
+    Dim temp As Worksheet
+
+    If g_PreviousSheet Is Nothing Or g_CurrentSheet Is Nothing Then Exit Sub
+
+    Application.EnableEvents = False
+
+    Set temp = g_CurrentSheet
+    Set g_CurrentSheet = g_PreviousSheet
+    Set g_PreviousSheet = temp
+
+    g_CurrentSheet.Activate
+
+    Application.EnableEvents = True
+
+End Sub
+
+
+'------------------------------------------------------------------------------------
+' Helpers for the Sheetpicker User Form
+
+Function ComboContains(cbo As Object, value As String) As Boolean
+    Dim i As Long
+    For i = 0 To cbo.ListCount - 1
+        If StrComp(cbo.List(i), value, vbTextCompare) = 0 Then
+            ComboContains = True
+            Exit Function
+        End If
+    Next i
+    ComboContains = False
+End Function
+
+
+Sub ShowSheetPicker()
+
+    Set g_PreviousSheet = ActiveSheet
+    g_DidNavigate = False
+
+    SheetPickerForm.Show
+
+    ' If user cancelled (Esc / X), restore sheet
+    If Not g_DidNavigate Then
+        If Not g_PreviousSheet Is Nothing Then
+            g_PreviousSheet.Activate
+        End If
+    End If
+
+End Sub
+
+
+' -------------------------------------------------------
+' CTDOT Resource Ribbon Links
+
+Public Sub OpenEstimatingGuidelines()
+    Dim url As String
+    url = "https://portal.ct.gov/dot/-/media/dot/aec/cost_estimating/guidelines/ctdot-cost-estimating-guidelines.pdf?rev=f5a2e20547df49489e5f4c65d2aa95d8&hash=7A461B8D08993E4D93C2AF56A0A31AC2"
+    
+    ' Open the PDF in the default browser
+    ThisWorkbook.FollowHyperlink url
+End Sub
+
