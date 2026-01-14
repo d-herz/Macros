@@ -63,11 +63,19 @@ SafeExit:
     Application.ScreenUpdating = True
 End Sub
 
-
-
-
 ' ---------------- Sheet Activate/Deactivate ----------------
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
+    
+    
+    ' Track navigation history for ribbon back button)
+    If g_CurrentSheet Is Nothing Then
+        Set g_CurrentSheet = Sh
+    ElseIf Sh.name <> g_CurrentSheet.name Then
+        Set g_PreviousSheet = g_CurrentSheet
+        Set g_CurrentSheet = Sh
+    End If
+    
+    
     ' Only track ItemBreakout sheets (numeric names)
     If IsItemBreakoutSheet(Sh.name) Then
         StoreOldValues Sh
@@ -117,7 +125,7 @@ Private Sub StoreOldValues(ws As Worksheet)
     ' --- ProjectWide Subtotal ---
     Set subtotalCell = ws.Columns("K").Find(What:="ProjectWide Subtotal", LookAt:=xlWhole)
     If Not subtotalCell Is Nothing Then
-        oldValues.Add subtotalCell.offset(0, 1).Value  ' Column L
+        oldValues.Add subtotalCell.offset(0, 1).value  ' Column L
     Else
         oldValues.Add Empty
     End If
@@ -125,7 +133,7 @@ Private Sub StoreOldValues(ws As Worksheet)
     ' --- Unassigned ---
     Set unassignedCell = ws.Columns("K").Find(What:="Unassigned", LookAt:=xlWhole)
     If Not unassignedCell Is Nothing Then
-        oldValues.Add unassignedCell.offset(0, -1).Value  ' Column J
+        oldValues.Add unassignedCell.offset(0, -1).value  ' Column J
     Else
         oldValues.Add Empty
     End If
@@ -150,7 +158,7 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
     ' --- ProjectWide Subtotal ---
     Set subtotalCell = ws.Columns("K").Find(What:="ProjectWide Subtotal", LookAt:=xlWhole)
     If Not subtotalCell Is Nothing Then
-        newSubtotal = subtotalCell.offset(0, 1).Value  ' Column L
+        newSubtotal = subtotalCell.offset(0, 1).value  ' Column L
         
         ' Only log if value actually changed
         If oldValues.count >= 1 Then
@@ -168,7 +176,7 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
     ' --- Unassigned ---
     Set unassignedCell = ws.Columns("K").Find(What:="Unassigned", LookAt:=xlWhole)
     If Not unassignedCell Is Nothing Then
-        newUnassigned = unassignedCell.offset(0, -1).Value  ' Column J
+        newUnassigned = unassignedCell.offset(0, -1).value  ' Column J
         
         ' Only log if value actually changed
         If oldValues.count >= 2 Then
@@ -197,7 +205,7 @@ Private Sub StoreSummaryOldValues(ws As Worksheet)
     Dim n As Variant
     For Each n In namesToTrack
         On Error Resume Next
-        SummaryOldValues(n) = ws.Range(n).Value
+        SummaryOldValues(n) = ws.Range(n).value
         On Error GoTo 0
     Next n
 End Sub
@@ -231,7 +239,7 @@ Private Sub CompareSummaryChanges(ws As Worksheet)
     For Each n In namesToTrack
         On Error Resume Next
         oldValue = SummaryOldValues(n)
-        newValue = ws.Range(n).Value
+        newValue = ws.Range(n).value
         On Error GoTo 0
         
         ' Only log if value changed
@@ -268,12 +276,11 @@ End Sub
 
 
 
-
 ' ---------------- Workbook_BeforeSave ----------------
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     On Error GoTo SafeExit
-    ThisWorkbook.Names("LastUpdatedBy").RefersToRange.Value = UserName()
-    ThisWorkbook.Names("LastUpdatedOn").RefersToRange.Value = Now
+    ThisWorkbook.Names("LastUpdatedBy").RefersToRange.value = UserName()
+    ThisWorkbook.Names("LastUpdatedOn").RefersToRange.value = Now
 SafeExit:
 End Sub
 
@@ -283,3 +290,8 @@ Private Sub Workbook_BeforeClose(Cancel As Boolean)
     On Error Resume Next
     If MetaHideTime <> 0 Then Application.OnTime MetaHideTime, "AutoHideMetaSheets", , False
 End Sub
+
+
+
+
+
