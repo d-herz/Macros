@@ -9,10 +9,9 @@ Public g_DidNavigate As Boolean
 ' Public variables for the two-state sheet toggle (back button)
 Public g_LastSheet As Worksheet
 Public g_CurrentSheet As Worksheet
-
-' Ribbon Macros
-
-Sub GoToDash()
+'--------------------------------------------------------------
+' Ribbon Navigation Macros
+Sub GoToDash(control As IRibbonControl)
     On Error Resume Next
     Worksheets("Dash").Activate
     If Err.Number <> 0 Then
@@ -22,7 +21,7 @@ Sub GoToDash()
 End Sub
 
 
-Sub GoToProjectInfo()
+Sub GoToProjectInfo(control As IRibbonControl)
     On Error Resume Next
     Worksheets("ProjectInfo").Activate
      Worksheets("ProjectInfo").Range("D6").Select
@@ -30,7 +29,7 @@ Sub GoToProjectInfo()
     On Error GoTo 0
 End Sub
 
-Sub GoToSummaryCDM()
+Sub GoToSummaryCDM(control As IRibbonControl)
     On Error Resume Next
     Worksheets("SummaryCDM").Activate
     Worksheets("SummaryCDM").Range("C11").Select
@@ -38,7 +37,7 @@ Sub GoToSummaryCDM()
     On Error GoTo 0
 End Sub
 
-Sub GoToItemList()
+Sub GoToItemList(control As IRibbonControl)
     On Error Resume Next
     Worksheets("ItemList").Activate
     Worksheets("ItemList").Range("A1").Select
@@ -46,10 +45,10 @@ Sub GoToItemList()
     On Error GoTo 0
 End Sub
 
+'---------------------------------------------------------------------
 ' --------------------------------------------------------------------
 ' Two-state sheet toggle ("Back" button, essentially)
-
-Public Sub GoBackToPreviousSheet()
+Public Sub GoBackToPreviousSheet(control As IRibbonControl)
 
     Dim temp As Worksheet
 
@@ -67,7 +66,12 @@ Public Sub GoBackToPreviousSheet()
 
 End Sub
 
+Public Function GetBackButtonEnabled(control As IRibbonControl) As Boolean
+    GetBackButtonEnabled = Not g_PreviousSheet Is Nothing
+End Function
 
+
+'-----------------------------------------------------------------------------------
 '------------------------------------------------------------------------------------
 ' Helpers for the Sheetpicker User Form
 
@@ -81,8 +85,6 @@ Function ComboContains(cbo As Object, value As String) As Boolean
     Next i
     ComboContains = False
 End Function
-
-
 Sub ShowSheetPicker()
 
     Set g_PreviousSheet = ActiveSheet
@@ -98,16 +100,50 @@ Sub ShowSheetPicker()
     End If
 
 End Sub
-
-
+'-------------------------------------------------------
 ' -------------------------------------------------------
 ' CTDOT Resource Ribbon Links
-
-Public Sub OpenEstimatingGuidelines()
+Public Sub OpenEstimatingGuidelines(control As IRibbonControl)
     Dim url As String
     url = "https://portal.ct.gov/dot/-/media/dot/aec/cost_estimating/guidelines/ctdot-cost-estimating-guidelines.pdf?rev=f5a2e20547df49489e5f4c65d2aa95d8&hash=7A461B8D08993E4D93C2AF56A0A31AC2"
     
     ' Open the PDF in the default browser
     ThisWorkbook.FollowHyperlink url
 End Sub
+Public Sub OpenStandardSpecifications(control As IRibbonControl)
+    ' Form 819 or current
+    Dim url As String
+    url = "https://portal.ct.gov/dot/-/media/dot/aec/form_819_july_2025.pdf?rev=38732303868d48c2a7b05fb4667edd16"
+    ThisWorkbook.FollowHyperlink url
+End Sub
+Public Sub OpenMasterItemBidList()
+    ' This link is no longer active, so removed from ribbon for now
+    Dim url As String
+    url = "https://portal.ct.gov/dot/-/media/dot/aec/cost_estimating/masteritembidlist_2025_02_14_v3.pdf?rev=c32fdd001b7f4a13b575150551277726&hash=05D2311ACF26156D9FEF9F1B9170FFB8"
+    ThisWorkbook.FollowHyperlink url
+End Sub
+
+'--------------------------------------------------------
+' -------------------------------------------------------
+' Ribbon entry wrappers for other macros
+
+Public Sub Ribbon_CreateNewProject(control As IRibbonControl)
+    CreateNewProject
+End Sub
+Public Sub Ribbon_GenerateDESLetter(control As IRibbonControl)
+    GenerateDES_Letter
+End Sub
+Public Sub Ribbon_GenerateDES11x17(control As IRibbonControl)
+    GenerateDES_11x17
+End Sub
+Public Sub Ribbon_ExportDEStoPDF(control As IRibbonControl)
+    ExportDEStoPDF
+End Sub
+Public Sub Ribbon_ExportCombinedPDF(control As IRibbonControl)
+    PrintAll_CombinedPDF
+End Sub
+Public Sub Ribbon_ValidateWorkbook(control As IRibbonControl)
+    ValidateWorkbook
+End Sub
+
 
