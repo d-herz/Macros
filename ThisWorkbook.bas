@@ -1,7 +1,7 @@
 ' ====================================================
 ' ThisWorkbook Module
 ' Tracks ItemBreakout changes, prevents deletion of protected sheets,
-' sets zoom/page break preview, and updates LastUpdated metadata
+' sets zoom/page break preview and active sheet on file open, and updates LastUpdated metadata
 ' ====================================================
 
 ' --- Dictionary to store old values when a sheet is activated ---
@@ -67,16 +67,17 @@ End Sub
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
     
     
-    ' Track navigation history for ribbon back button)
-    If g_CurrentSheet Is Nothing Then
+    ' Track navigation history (for ribbon back button)
+    If Not IsValidWorksheet(g_CurrentSheet) Then
         Set g_CurrentSheet = Sh
+        Set g_PreviousSheet = Nothing
     ElseIf Sh.name <> g_CurrentSheet.name Then
         Set g_PreviousSheet = g_CurrentSheet
         Set g_CurrentSheet = Sh
     End If
     
     
-    ' Only track ItemBreakout sheets (numeric names)
+    ' Track values in ItemBreakout sheets (numeric names)(for logging purposes)
     If IsItemBreakoutSheet(Sh.name) Then
         StoreOldValues Sh
         ' Summary CDM Sheet
