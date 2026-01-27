@@ -1,7 +1,28 @@
+' ====================================================
+' AddNewItemMod
+'
+' Purpose:
+' Adds a new bid item to the ItemList sheet and creates a corresponding Item Breakout worksheet based protected template.
+'
+' Key responsibilities:
+' - Validate item number format
+' - Determine item category from prefix
+' - Insert item in ItemList in sorted order within category
+' - Prevent duplicate items
+' - Create and configure breakout worksheet
+' - Generate route sections if applicable
+' - Log the change and update estimate metadata
+'
+' Assumptions:
+' - ItemList category headers are in Column B
+' - Item numbers are stored as text in Column B
+' - Category sections are contiguous
+' - "_ItemBreakoutTemplate" exists and is valid
+' ====================================================
+
 Option Explicit
 
 Sub AddNewItem()
-
 
     FreezeUI
     On Error GoTo CleanExit
@@ -13,15 +34,17 @@ Sub AddNewItem()
     Dim foundHeader As Range
     Dim insertRow As Long
     Dim i As Long
+    Dim itemCreated As Boolean
     Dim lastRow As Long
     Dim category As String
     Dim categoryMap As Object
-    Dim nextRow As Long
+    Dim NextRow As Long
     Dim firstItemRow As Long
     Dim key As Variant
     Dim found As Boolean
-
     Dim originalSheet As Worksheet
+    
+    itemCreated = True
     Set originalSheet = ThisWorkbook.Sheets("ItemList")
 
     '==============================
@@ -32,6 +55,11 @@ Sub AddNewItem()
 
     '==============================
     ' Prompt for item number
+    ' Valid formats:
+    '   - 7 digits (standard items)
+    '   - 7 digits + ".##" (depth-based drainage items)
+    '
+    ' Item numbers are stored as text to preserve leading zeros.
     '==============================
     itemNum = InputBox( _
         "Enter the item number:" & vbCrLf & _
@@ -50,6 +78,8 @@ Sub AddNewItem()
 
     '==============================
     ' Category mapping
+    '   Map item number prefixes to ItemList category headers.
+    '   This dictionary defines the authoritative business rules for categorizing bid items
     '==============================
     Set categoryMap = CreateObject("Scripting.Dictionary")
     categoryMap.Add "Earthwork Items", Array("02", "03")
@@ -83,17 +113,17 @@ Sub AddNewItem()
     End If
 
     lastRow = ws.Cells(ws.Rows.count, "B").End(xlUp).Row
-    nextRow = lastRow + 1
+    NextRow = lastRow + 1
 
     For i = foundHeader.Row + 1 To lastRow
-        If ws.Cells(i, "B").Value Like "*Items" Then
-            nextRow = i
+        If ws.Cells(i, "B").value Like "*Items" Then
+            NextRow = i
             Exit For
         End If
     Next i
 
     firstItemRow = foundHeader.Row + 3
-    If firstItemRow >= nextRow Then
+    If firstItemRow >= NextRow Then
         MsgBox "No template row found under " & category & ".", vbCritical
         GoTo CleanExit
     End If
@@ -101,7 +131,7 @@ Sub AddNewItem()
     '==============================
     ' Duplicate check
     '==============================
-    For i = foundHeader.Row + 1 To nextRow - 1
+    For i = foundHeader.Row + 1 To NextRow - 1
         If ws.Cells(i, "B").Text = itemNum Then
             MsgBox "Item " & itemNum & " already exists in " & category & ".", vbExclamation
             GoTo CleanExit
@@ -110,11 +140,13 @@ Sub AddNewItem()
 
     '==============================
     ' Determine insertion row
+    '   Determine correct insertion row to maintain ascending sort order by item number within the category.
+    '   Comparison is performed as text, relying on fixed-width item numbering to preserve numeric ordering.
     '==============================
-    insertRow = nextRow
-    For i = firstItemRow To nextRow - 1
-        If ws.Cells(i, "B").Value <> "" Then
-            If ws.Cells(i, "B").Value > itemNum Then
+    insertRow = NextRow
+    For i = firstItemRow To NextRow - 1
+        If ws.Cells(i, "B").value <> "" Then
+            If ws.Cells(i, "B").value > itemNum Then
                 insertRow = i
                 Exit For
             End If
@@ -132,7 +164,7 @@ Sub AddNewItem()
 
     ws.Rows(insertRow).Hidden = False
     ws.Cells(insertRow, "B").NumberFormat = "@"
-    ws.Cells(insertRow, "B").Value = itemNum
+    ws.Cells(insertRow, "B").value = itemNum
 
     '==============================
     ' Lookup item description
@@ -149,6 +181,8 @@ Sub AddNewItem()
 
     '==============================
     ' Create breakout sheet
+    '   Create a new item breakout worksheet by copying the _ItemBreakoutTemplate
+    '   Visibility and protection states are preserved and restored to avoid exposing internal/meta sheets
     '==============================
     Dim breakoutTemplate As Worksheet
     Dim newBreakout As Worksheet
@@ -215,11 +249,13 @@ CleanExit:
     Application.CutCopyMode = False
     ws.Protect UserInterfaceOnly:=True
     
-    Call UpdateEstimateMetaData
-    Call LogEstimateChange("Macro: AddNewItem", "Item: #" & itemNum & " " & itemName & " Added")
-
-    ' --- Mark DES as out of date ---
-    DESOutOfDate = True
+    
+    If itemCreated Then
+        Call UpdateEstimateMetaData
+        Call LogEstimateChange("Macro: AddNewItem", "Item: #" & itemNum & " " & itemName & " Added")
+        ' --- Mark DES as out of date ---
+        DESOutOfDate = True
+    End If
     
     '------- Restore user back to original sheet (ItemList)----------
     originalSheet.Activate
