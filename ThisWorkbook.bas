@@ -1,8 +1,19 @@
-' ====================================================
-' ThisWorkbook Module
-' Tracks ItemBreakout changes, prevents deletion of protected sheets,
-' sets zoom/page break preview and active sheet on file open, and updates LastUpdated metadata
-' ====================================================
+' ThisWorkbook
+' ----------------------------------------------------
+' Central orchestration for workbook-level behavior.
+'
+' Responsibilities:
+' - Track and log user-initiated changes on ItemBreakout and Summary sheets
+' - Maintain navigation history for custom Ribbon controls
+' - Initialize workbook view state on open
+' - Update estimate metadata (LastUpdatedBy / LastUpdatedOn)
+' - Enforce guardrails around protected internal sheets
+'
+' NOTE:
+' This module intentionally avoids direct business logic.
+' All calculations, logging, and UI actions are delegated
+' to standard modules for maintainability.
+' ----------------------------------------------------
 
 ' --- Dictionary to store old values when a sheet is activated ---
 ' Must be declared at top-level so all subs can access it
@@ -67,7 +78,8 @@ End Sub
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
     
     
-    ' Track navigation history (for ribbon back button)
+    ' Track worksheet navigation for the Ribbon "Back" button
+    ' Maintains a simple two-step history (current/previous)
     If Not IsValidWorksheet(g_CurrentSheet) Then
         Set g_CurrentSheet = Sh
         Set g_PreviousSheet = Nothing
@@ -118,6 +130,9 @@ Private Function IsItemBreakoutSheet(sheetName As String) As Boolean
     IsItemBreakoutSheet = IsNumeric(baseName)
 End Function
 
+
+' Captures a snapshot of key named ranges when the item breakout sheet is activated.
+
 Private Sub StoreOldValues(ws As Worksheet)
     Dim subtotalCell As Range, unassignedCell As Range
     Dim oldValues As Collection
@@ -144,7 +159,7 @@ Private Sub StoreOldValues(ws As Worksheet)
     Set SheetOldValues(ws.name) = oldValues
 End Sub
 
-
+' Compares values on sheet deactivation and determines if a meaningful manual edit has occured, and logs the change.
 Private Sub CompareAndLogChanges(ws As Worksheet)
     Dim subtotalCell As Range, unassignedCell As Range
     Dim oldValues As Collection
@@ -193,6 +208,10 @@ Private Sub CompareAndLogChanges(ws As Worksheet)
     End If
 End Sub
 
+
+' Captures a snapshot of key SummaryCDM named ranges when the SummaryCDM sheet is activated.
+' Values are compared on deactivation to determine whether the user made a meaningful manual edit that should be logged.
+' Named ranges are used instead of fixed cell addresses to imporve resillience to layout changes
 
 Private Sub StoreSummaryOldValues(ws As Worksheet)
 
