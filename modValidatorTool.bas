@@ -1,16 +1,17 @@
+' Macro for scanning the workbook for Errors, and generates the "Error Report" sheet
+
 Sub ValidateWorkbook()
     Dim ws As Worksheet
     Dim errReport As Worksheet
     Dim cell As Range
     Dim rng As Range
-    Dim lastRow As Long
     Dim reportRow As Long
-    Dim errorTypes As Variant
     Dim sheetName As String
     Dim erSheetExists As Boolean
+    Dim errorCount As Long
     
-    ' Define the errors to check
-    errorTypes = Array(xlErrDiv0, xlErrNA, xlErrName, xlErrNull, xlErrNum, xlErrRef, xlErrValue)
+    FreezeUI
+    On Error GoTo CleanExit
     
     ' -------------------------
     ' Delete previous _ErrorReport sheet safely
@@ -61,10 +62,7 @@ Sub ValidateWorkbook()
         
         ' Skip MetaData and other ignored sheets
         If Left(sheetName, 1) <> "_" And _
-           sheetName <> "UnitPrices" And _
-           sheetName <> "_MetaData" And _
-           sheetName <> "_ItemBreakoutTemplate" And _
-           sheetName <> "_MasterItemBidList" Then
+           sheetName <> "UnitPrices" Then
            
             ' Include only relevant sheets: ProjectInfo, SummaryDOT, SummaryCDM, ItemList, or item breakout sheets
             If sheetName = "ProjectInfo" Or sheetName = "SummaryDOT" Or sheetName = "SummaryCDM" Or sheetName = "ItemList" _
@@ -80,7 +78,7 @@ Sub ValidateWorkbook()
                         ' Add details to report
                         errReport.Cells(reportRow, 1).value = ws.name
                         errReport.Cells(reportRow, 2).value = cell.Address(False, False)
-                        errReport.Cells(reportRow, 3).value = cell.Text
+                        errReport.Cells(reportRow, 3).value = cell.value
                         ' Add hyperlink to cell
                         errReport.Hyperlinks.Add Anchor:=errReport.Cells(reportRow, 4), _
                             Address:="", SubAddress:="'" & ws.name & "'!" & cell.Address, _
@@ -97,7 +95,17 @@ Sub ValidateWorkbook()
     ' Autofit columns for readability
     errReport.Columns("A:D").AutoFit
     
+    
+    errorCount = reportRow - 5
+    
+    Call UpdateEstimateMetaData
+    Call LogEstimateChange("Error Report", "Error Report Generated, " & errorCount & " error(s) found")
+    
     MsgBox "Validation complete. Check the '_ErrorReport' sheet for details.", vbInformation
+    
+CleanExit:
+    UnfreezeUI
+    
 End Sub
 
 
