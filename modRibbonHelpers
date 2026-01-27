@@ -130,20 +130,27 @@ End Sub
 Public Sub Ribbon_CreateNewProject(control As IRibbonControl)
     CreateNewProject
 End Sub
+
 Public Sub Ribbon_GenerateDESLetter(control As IRibbonControl)
     GenerateDES_Letter
 End Sub
+
 Public Sub Ribbon_GenerateDES11x17(control As IRibbonControl)
     GenerateDES_11x17
 End Sub
+
 Public Sub Ribbon_ExportDEStoPDF(control As IRibbonControl)
     ExportDEStoPDF
 End Sub
+
 Public Sub Ribbon_ExportCombinedPDF(control As IRibbonControl)
     PrintAll_CombinedPDF
 End Sub
+
 Public Sub Ribbon_ValidateWorkbook(control As IRibbonControl)
     ValidateWorkbook
 End Sub
 
-
+Public Sub Ribbon_ShowMetaSheets(control As IRibbonControl)
+    RevealMetaDataSheets
+End Sub
