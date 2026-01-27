@@ -1,6 +1,21 @@
+' ====================================================
+' AddRouteSections
+'
+' PURPOSE:
+' Duplicates the Route Section template block on an Item Breakout worksheet and updates all associated subtotal and project-wide total formulas.
+'
+' CRITICAL ASSUMPTIONS:
+' - Template rows are fixed (Rows 15–28)
+' - Route names exist starting at Row 4 (Column Q)
+' - Subtotal rows begin at Row 31
+' - Route sections are added in a single contiguous run
+'
+' Any changes to the Item Breakout template layout REQUIRE updating these constants.
+' ====================================================
+
 Option Explicit
 
-' This macro is for the "Add Route Section" button on the item breakouts
+' This macro is for the "Add Route Section" button on the item breakouts (since routes are being added automatically now by AddNewItem, this helper is not currently needed (remove?)
 Public Sub AddRouteSections_UI()
     ' Manual entry point for button / Macros dialog
     ' Uses ActiveSheet and prompts user for count
