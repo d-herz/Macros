@@ -1,7 +1,23 @@
+'================================================================================
+' Module: RemoveItem
+' Purpose: Provides functionality to remove an item from the "ItemList" sheet.
+'          Optionally deletes the associated item breakout sheet if it exists.
+'
+' Key Functionality:
+'   - Prompts the user to enter an item number (7 digits, optionally with 2-digit suffix).
+'   - Validates input and searches for the item in column B of "ItemList".
+'   - Deletes the item row from the ItemList sheet.
+'   - Checks for the existence of an associated breakout sheet and prompts the user to optionally deletes it.
+'   - Logs the removal in the estimate metadata and marks the Detailed Estimate Sheets (DES) as out-of-date.
+'   - Ensures proper sheet protection before and after the operation.
+'
+' Notes / Assumptions:
+'   - ItemList sheet must exist and be unprotected before deletion.
+'   - Breakout sheet names are expected to follow the convention: ItemNumber + Suffix (from column C).
+'   - Uses _MasterItemBidList to retrieve item descriptions for logging.
+'   - DESOutOfDate is a global flag indicating that Detailed Estimate Sheets need regeneration.
+'================================================================================
 Option Explicit
-
-' This macro is for removing an item from the "ItemList".
-' It will also ask the user if they want to delete the associated item breakout tab (if it exists)
 
 Sub RemoveItem()
     Dim ws As Worksheet
@@ -13,7 +29,7 @@ Sub RemoveItem()
     Dim lastRow As Long
     Dim found As Boolean
     Dim breakoutSheet As Worksheet
-    Dim deleteBreakout As VbMsgBoxResult
+    Dim deleteBreakout As Long
     
     ' Set the worksheet
     Set ws = ThisWorkbook.Sheets("ItemList")
@@ -93,9 +109,9 @@ Sub RemoveItem()
     ' Log the change in _MetaData
     Call LogEstimateChange("Macro: RemoveItem", "Item: #" & itemNum & " " & itemName & " Removed")
 
-
     ' --- Mark DES as out of date ---
     DESOutOfDate = True
+
     
 End Sub
 
