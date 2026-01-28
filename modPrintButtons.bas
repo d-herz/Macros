@@ -1,5 +1,35 @@
+'===============================================================================
+' Module: modPrintButtons
+'
+' Description:
+' This module contains user-facing macros for exporting estimate deliverables
+' to PDF. These procedures are typically triggered by worksheet buttons or
+' ribbon controls and coordinate which sheets are printed, how they are grouped,
+' and how output files are named.
+'
+' Supported outputs include:
+'   - Item Lists
+'   - Summary sheets (CDM and DOT)
+'   - Individual Item Breakout sheets
+'   - Combined estimate deliverable (SummaryCDM, ItemList, all Item breakouts)
+'   - Detailed Estimate Sheets (DES)
+'
+' The module also includes helper procedures for PDF generation, project ID
+' retrieval, and user prompts related to DES layout selection.
+'
+' Notes:
+' - This module acts as a controller layer and intentionally delegates core
+'   logic (e.g., DES generation, sorting, logging, metadata updates) to other
+'   modules.
+' - Changes here primarily affect user workflows and deliverable output, not
+'   estimate calculations.
+
+'===============================================================================
+
 Option Explicit
 
+' Set to "true" by data-modifying operations that invalidate DES sheets
+' Cleared when DES sheets are regenerated
 Public DESOutOfDate As Boolean
 
 '===========================================================
@@ -158,7 +188,7 @@ Sub ExportDEStoPDF()
     Call LogEstimateChange("Print: DES", "Detailed Estimate Sheets exported to PDF")
     
     On Error Resume Next
-   ' ThisWorkbook.Sheets("DES_1").Select
+
 End Sub
 
 
