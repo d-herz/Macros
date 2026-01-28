@@ -15,7 +15,11 @@
 
 Option Explicit
 
-' This macro is for the "Add Route Section" button on the item breakouts (since routes are being added automatically now by AddNewItem, this helper is not currently needed (remove?)
+' AddRouteSections_UI macro is for the "Add Route Section" button on the item breakouts
+' NOTE:
+' Manual route section insertion is deprecated.
+' Routes are now generated automatically during item creation.
+
 Public Sub AddRouteSections_UI()
     ' Manual entry point for button / Macros dialog
     ' Uses ActiveSheet and prompts user for count
@@ -28,6 +32,9 @@ Sub AddRouteSections(Optional ByVal AutoCount As Long = 0, _
 
     '==============================
     ' CONFIGURATION
+    '   Template geometry configuration
+    '   These constants define the exact row layout of a single route section block in the Item Breakout Template
+    '   DO NOT MODIFY without updating the breakout template
     '==============================
     Const TemplateStartRow As Long = 15
     Const TemplateEndRow As Long = 28
@@ -94,6 +101,7 @@ Sub AddRouteSections(Optional ByVal AutoCount As Long = 0, _
 
     '==============================
     ' Main loop
+    '   Duplicates the template block, relabels the headers, and insert a corresponding subtotal row for each additional route section
     '==============================
     For i = 1 To SectionsToAdd
 
@@ -132,6 +140,8 @@ Sub AddRouteSections(Optional ByVal AutoCount As Long = 0, _
 
     '==============================
     ' Project-wide subtotal
+    '   Recalculate the project-wide subtotal as the sum of all route section subtotals added in this operation
+    'Note: this logic assumes route sections are added as a contiguous group and does not detect preexisting sections
     '==============================
     ProjectWideRow = (SubtotalStartRow + ProjectWideRowOffset) + _
                      (numRows * SectionsToAdd) + SectionsToAdd
