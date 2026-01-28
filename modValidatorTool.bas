@@ -1,4 +1,23 @@
-' Macro for scanning the workbook for Errors, and generates the "Error Report" sheet
+'================================================================================
+' Module: modValidatorTool
+' Purpose: Scans the workbook for errors (#REF!, #NAME?, #VALUE!, etc.) in
+'          key estimate sheets and generates a consolidated "_ErrorReport" sheet.
+'
+' Key Functionality:
+'   - Deletes any previous "_ErrorReport" sheet safely.
+'   - Creates a new "_ErrorReport" sheet with headers, timestamp, and username.
+'   - Loops through relevant sheets (ProjectInfo, SummaryDOT, SummaryCDM, ItemList,
+'     and item breakout sheets) to identify cells with formula errors.
+'   - Populates the report with Sheet Name, Cell Address, Error Type, and clickable
+'     hyperlink to navigate directly to the cell.
+'   - Autofits columns and logs the validation run in the estimate metadata.
+'
+' Notes / Assumptions:
+'   - Ignores sheets starting with "_" (MetaData) and the "UnitPrices" sheet.
+'   - Item breakout sheets are identified by names starting with numeric characters.
+'   - Uses FreezeUI / UnfreezeUI to prevent screen flicker and speed up execution.
+'================================================================================
+
 
 Sub ValidateWorkbook()
     Dim ws As Worksheet
