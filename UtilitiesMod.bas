@@ -1,7 +1,6 @@
 Option Explicit
 Private UIStack As Long
 
-
 ' Log change in the _MetaData hidden tab
 Public Sub LogEstimateChange(actionText As String, Optional detailsText As String = "", Optional targetWB As Workbook = Nothing)
     
@@ -73,8 +72,6 @@ CleanFail:
 
 End Sub
 
-
-
 ' Update the LastUpdatedBy and LastUpdatedOn Meta Data
 
 Public Sub UpdateEstimateMetaData(Optional targetWB As Workbook = Nothing)
@@ -128,12 +125,30 @@ Fail:
     GetProjectNumberFromWorkbook = ""
 End Function
 
-' Helper for checking existence of sheet (used in GenerateDES, RevealMetaData, and ValidateWorkbook)
-Public Function SheetExists(sheetName As String) As Boolean
+' Helper for checking existence of sheet (used in GenerateDES, RevealMetaData, SortItemTabs, and ValidateWorkbook)
+Public Function SheetExists(ByVal sheetName As Variant) As Boolean
     Dim ws As Worksheet
     On Error Resume Next
-    Set ws = ThisWorkbook.Sheets(sheetName)
+    Set ws = ThisWorkbook.Sheets(CStr(sheetName))
     On Error GoTo 0
     SheetExists = Not ws Is Nothing
 End Function
+
+' Helper for checking if worksheet is valid or not (used ThisWorkbook Workbook_SheetActivate)
+
+Public Function IsValidWorksheet(ws As Worksheet) As Boolean
+    On Error Resume Next
+    Dim tmp As String
+    tmp = ws.name
+    IsValidWorksheet = (Err.Number = 0)
+    Err.Clear
+End Function
+
+'------------------------------------------------------
+' Helper function for retrieving user name (used on Dash, and for logging)
+Public Function UserName() As String
+    'Returns the current Windows login username
+    UserName = Environ("USERNAME")
+End Function
+
 
