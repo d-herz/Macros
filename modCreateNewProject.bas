@@ -1,3 +1,29 @@
+'================================================================================
+' Module: modCreateNewProject
+'
+' Purpose:
+'   Orchestrates the creation of a new Standard Cost Estimate project file from
+'   the current workbook (template or active estimate). This module handles:
+'     - User confirmation and project number input (production mode)
+'     - DEV_MODE behavior for safe testing
+'     - File system operations (folder creation, overwrite handling)
+'     - Workbook duplication and initialization
+'
+'   The module also contains the centralized initialization logic used to reset
+'   all project-specific data in the new workbook, including:
+'     - Project metadata and change log
+'     - Named project information fields
+'     - Project towns and routes tables
+'     - Item breakout sheets
+'     - ItemList contents (while preserving structure and templates)
+'
+' Design Notes:
+'   - All destructive operations are performed only on the newly created workbook
+'   - Protected sheets and rows are respected and restored after modification
+'   - DEV_MODE enables non-interactive testing and verbose debug output
+'   - Initialization is executed as a single controlled operation with Excel
+'     state (events, calculation, screen updating) safely restored on exit
+'================================================================================
 Option Explicit
 
 ' Dev_Mode should be set to True only when working on and testing this macro
