@@ -1,5 +1,8 @@
 '================================================================================
 ' Module: RemoveItem
+' Author: DFH
+' Created: January 2026
+'
 ' Purpose: Provides functionality to remove an item from the "ItemList" sheet.
 '          Optionally deletes the associated item breakout sheet if it exists.
 '
