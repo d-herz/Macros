@@ -1,5 +1,8 @@
 '================================================================================
 ' Module: modValidatorTool
+' Author: DFH
+' Created: January 2026
+'
 ' Purpose: Scans the workbook for errors (#REF!, #NAME?, #VALUE!, etc.) in
 '          key estimate sheets and generates a consolidated "_ErrorReport" sheet.
 '
@@ -17,7 +20,6 @@
 '   - Item breakout sheets are identified by names starting with numeric characters.
 '   - Uses FreezeUI / UnfreezeUI to prevent screen flicker and speed up execution.
 '================================================================================
-
 
 Sub ValidateWorkbook()
     Dim ws As Worksheet
