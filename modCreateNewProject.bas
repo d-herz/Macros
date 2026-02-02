@@ -1,5 +1,7 @@
 '================================================================================
 ' Module: modCreateNewProject
+' Author: DFH
+' Created: January 2026
 '
 ' Purpose:
 '   Orchestrates the creation of a new Standard Cost Estimate project file from
