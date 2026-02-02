@@ -1,3 +1,39 @@
+' ============================================================================
+' Module: UtilitiesModule
+' Author: DFH
+' Created: January 2026
+'
+' Purpose:
+'   Provides shared utility procedures and functions used across the workbook.
+'   This module centralizes common, non-domain-specific helpers to promote
+'   consistency, reduce duplication, and improve maintainability.
+'
+' Responsibilities:
+'   - Logging estimate changes to the hidden _MetaData sheet (change history)
+'   - Updating "Last Updated" metadata fields
+'   - Safely freezing and restoring Excel UI state for performance optimization
+'     (supports nested calls via a stack-based approach)
+'   - Common workbook helpers (sheet existence checks, worksheet validation)
+'   - Retrieval of project-level identifiers from named ranges
+'
+' Design Notes:
+'   - All procedures are written to fail gracefully; utility failures should
+'     never crash calling macros.
+'   - Optional Workbook parameters allow reuse with other workbooks when needed.
+'   - UI state management is centralized here to avoid inconsistent behavior
+'     across macros.
+'   - This module contains no business logic and should remain dependency-light.
+'
+' Dependencies:
+'   - Hidden worksheet: _MetaData
+'   - Named ranges: LastUpdatedBy, LastUpdatedOn, ProjNumDOT
+'   - Table: tblChangeLog (on _MetaData)
+'
+' Usage:
+'   Intended to be called by higher-level workflow, ribbon, validation, and
+'   generation modules. Should not contain user-facing macros.
+' ============================================================================
+
 Option Explicit
 Private UIStack As Long
 
@@ -20,11 +56,10 @@ Public Sub LogEstimateChange(actionText As String, Optional detailsText As Strin
         Set wb = targetWB
     End If
     
-    
     maxRows = 250   'Set your maximum number of log entries
 
     Set wsMeta = wb.Worksheets("_MetaData")
-    
+    If wsMeta Is Nothing Then GoTo CleanExit
     
     ' handle protection
     wasProtected = wsMeta.ProtectContents
@@ -33,8 +68,8 @@ Public Sub LogEstimateChange(actionText As String, Optional detailsText As Strin
     End If
     
     
-    
     Set logTable = wsMeta.ListObjects("tblChangeLog")
+    If logTable Is Nothing Then GoTo CleanExit
     
     'Insert new row at the top
     Set newRow = logTable.ListRows.Add(1)
@@ -72,8 +107,8 @@ CleanFail:
 
 End Sub
 
-' Update the LastUpdatedBy and LastUpdatedOn Meta Data
 
+' Update the LastUpdatedBy and LastUpdatedOn Meta Data
 Public Sub UpdateEstimateMetaData(Optional targetWB As Workbook = Nothing)
 
     Dim wb As Workbook
@@ -87,11 +122,11 @@ Public Sub UpdateEstimateMetaData(Optional targetWB As Workbook = Nothing)
     On Error Resume Next
     wb.Names("LastUpdatedBy").RefersToRange.value = UserName()
     wb.Names("LastUpdatedOn").RefersToRange.value = Now
-
+    
+    On Error GoTo 0
 End Sub
 
 ' Helper subs for freezing and unfreezing UI (for optimizing runtime and reducing screen flickering)
-
 Public Sub FreezeUI()
     If UIStack = 0 Then
         Application.ScreenUpdating = False
@@ -125,7 +160,7 @@ Fail:
     GetProjectNumberFromWorkbook = ""
 End Function
 
-' Helper for checking existence of sheet (used in GenerateDES, RevealMetaData, SortItemTabs, and ValidateWorkbook)
+' Helper for checking existence of sheet IN THE WORKBOOK (used in GenerateDES, RevealMetaData, SortItemTabs, and ValidateWorkbook)
 Public Function SheetExists(ByVal sheetName As Variant) As Boolean
     Dim ws As Worksheet
     On Error Resume Next
@@ -142,13 +177,14 @@ Public Function IsValidWorksheet(ws As Worksheet) As Boolean
     tmp = ws.name
     IsValidWorksheet = (Err.Number = 0)
     Err.Clear
+    On Error GoTo 0
 End Function
 
-'------------------------------------------------------
-' Helper function for retrieving user name (used on Dash, and for logging)
+' Helper function for retrieving the users ID
 Public Function UserName() As String
     'Returns the current Windows login username
     UserName = Environ("USERNAME")
 End Function
+
 
 
