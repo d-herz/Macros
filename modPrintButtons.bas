@@ -1,5 +1,7 @@
 '===============================================================================
 ' Module: modPrintButtons
+' Author: DFH
+' Created: January 2026
 '
 ' Description:
 ' This module contains user-facing macros for exporting estimate deliverables
@@ -23,7 +25,6 @@
 '   modules.
 ' - Changes here primarily affect user workflows and deliverable output, not
 '   estimate calculations.
-
 '===============================================================================
 
 Option Explicit
