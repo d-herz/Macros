@@ -1,5 +1,7 @@
 '===============================================================================
 ' Module: modGenerateDES
+' Author: DFH
+' Created: January 2026
 '
 ' Description:
 ' This module contains the logic responsible for generating the Detailed
