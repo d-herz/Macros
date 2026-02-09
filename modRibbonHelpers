@@ -26,12 +26,20 @@
 '
 '   4) Ribbon Wrapper Macros
 '       - Ribbon_CreateNewProject
+'       - Ribbon_ValidateWorkbook
+'       - Ribbon_ShowMetaSheets
+'
+'       - Ribbon_AddNewItem
+'       - Ribbon_RemoveItem
+'
 '       - Ribbon_GenerateDESLetter
 '       - Ribbon_GenerateDES11x17
 '       - Ribbon_ExportDEStoPDF
+'
+'       - Ribbon_ExportSummaryCDMtoPDF
+'       - Ribbon_ExportSummaryDOTtoPDF
+'       - Ribbon_ExportItemListtoPDF
 '       - Ribbon_ExportCombinedPDF
-'       - Ribbon_ValidateWorkbook
-'       - Ribbon_ShowMetaSheets
 '
 ' Notes:
 '   - All Ribbon macros include the `control As IRibbonControl`
@@ -159,7 +167,7 @@ Public Sub OpenStandardSpecifications(control As IRibbonControl)
     url = "https://portal.ct.gov/dot/-/media/dot/aec/form_819_july_2025.pdf?rev=38732303868d48c2a7b05fb4667edd16"
     ThisWorkbook.FollowHyperlink url
 End Sub
-Public Sub OpenMasterItemBidList(control As IRibbonControl)
+Public Sub OpenMasterItemBidList()
     ' This link is no longer active, so removed from ribbon for now
     Dim url As String
     url = "https://portal.ct.gov/dot/-/media/dot/aec/cost_estimating/masteritembidlist_2025_02_14_v3.pdf?rev=c32fdd001b7f4a13b575150551277726&hash=05D2311ACF26156D9FEF9F1B9170FFB8"
@@ -170,10 +178,16 @@ End Sub
 ' -------------------------------------------------------
 ' Ribbon entry wrappers for other macros
 
-Public Sub Ribbon_CreateNewProject(control As IRibbonControl)
-    CreateNewProject
+' Estimate Items
+Public Sub Ribbon_AddNewItem(control As IRibbonControl)
+    AddNewItem
 End Sub
 
+Public Sub Ribbon_RemoveItem(control As IRibbonControl)
+    RemoveItem
+End Sub
+
+' DES
 Public Sub Ribbon_GenerateDESLetter(control As IRibbonControl)
     GenerateDES_Letter
 End Sub
@@ -182,12 +196,9 @@ Public Sub Ribbon_GenerateDES11x17(control As IRibbonControl)
     GenerateDES_11x17
 End Sub
 
-Public Sub Ribbon_ExportDEStoPDF(control As IRibbonControl)
-    ExportDEStoPDF
-End Sub
-
-Public Sub Ribbon_ExportCombinedPDF(control As IRibbonControl)
-    PrintAll_CombinedPDF
+' Utilities
+Public Sub Ribbon_CreateNewProject(control As IRibbonControl)
+    CreateNewProject
 End Sub
 
 Public Sub Ribbon_ValidateWorkbook(control As IRibbonControl)
@@ -196,6 +207,26 @@ End Sub
 
 Public Sub Ribbon_ShowMetaSheets(control As IRibbonControl)
     RevealMetaDataSheets
+End Sub
+
+' Print
+Public Sub Ribbon_ExportSummaryCDMtoPDF(control As IRibbonControl)
+    PrintSummaryCDMToPDF
+End Sub
+
+Public Sub Ribbon_ExportSummaryDOTtoPDF(control As IRibbonControl)
+    PrintSummaryDOTToPDF
+End Sub
+Public Sub Ribbon_ExportItemListtoPDF(control As IRibbonControl)
+    PrintItemListToPDF
+End Sub
+
+Public Sub Ribbon_ExportDEStoPDF(control As IRibbonControl)
+    ExportDEStoPDF
+End Sub
+
+Public Sub Ribbon_ExportCombinedPDF(control As IRibbonControl)
+    PrintAll_CombinedPDF
 End Sub
 
 '-------------------------------------------------------
