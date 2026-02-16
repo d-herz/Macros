@@ -156,7 +156,7 @@ End Sub
 ' CTDOT Resource Ribbon Links
 Public Sub OpenEstimatingGuidelines(control As IRibbonControl)
     Dim url As String
-    url = "https://portal.ct.gov/dot/-/media/dot/aec/cost_estimating/guidelines/ctdot-cost-estimating-guidelines.pdf?rev=f5a2e20547df49489e5f4c65d2aa95d8&hash=7A461B8D08993E4D93C2AF56A0A31AC2"
+    url = "https://portal.ct.gov/dot/-/media/dot/aec/cost_estimating/ctdot-cost-estimating-guidelines.pdf?rev=7dfed17cce2c45adbc3f5d8bd803fee8&hash=45CAF57C0BC6998688C132CF666D9C88"
     
     ' Open the PDF in the default browser
     ThisWorkbook.FollowHyperlink url
