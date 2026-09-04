@@ -1,12 +1,14 @@
 ' ====================================================
-' AddNewItemMod
+' Module: AddNewItemMod
+' Author: DFH
+' Created: January 2026
 '
 ' Purpose:
 ' Adds a new bid item to the ItemList sheet and creates a corresponding Item Breakout worksheet based protected template.
 '
 ' Key responsibilities:
 ' - Validate item number format
-' - Determine item category from prefix
+' - Determine item category from prefix (3-digit with 2-digit fallback)
 ' - Insert item in ItemList in sorted order within category
 ' - Prevent duplicate items
 ' - Create and configure breakout worksheet
@@ -30,7 +32,8 @@ Sub AddNewItem()
     Dim ws As Worksheet
     Dim itemNum As String
     Dim itemName As String
-    Dim prefix As String
+    Dim prefix2 As String
+    Dim prefix3 As String
     Dim foundHeader As Range
     Dim insertRow As Long
     Dim i As Long
@@ -74,32 +77,51 @@ Sub AddNewItem()
         GoTo CleanExit
     End If
 
-    prefix = Left(itemNum, 2)
+    prefix2 = Left(itemNum, 2)
+    prefix3 = Left(itemNum, 3)
 
     '==============================
     ' Category mapping
     '   Map item number prefixes to ItemList category headers.
-    '   This dictionary defines the authoritative business rules for categorizing bid items
+    '   Explicit 3-digit prefixes are defined first to resolve overlaps 
+    '   (e.g., Traffic Signals vs. Traffic Control in the 10/11 range).
+    '   2-digit prefixes serve as fallbacks for non-overlapping categories.
     '==============================
     Set categoryMap = CreateObject("Scripting.Dictionary")
+    
+    ' Standard 2-digit categories
     categoryMap.Add "Earthwork Items", Array("02", "03")
     categoryMap.Add "Roadway Items", Array("04")
     categoryMap.Add "Drainage Items", Array("05", "06")
     categoryMap.Add "Incidental Construction Items", Array("07", "08", "09")
-    categoryMap.Add "Traffic Control Items", Array("10", "11", "12", "18")
-    categoryMap.Add "Traffic Signal Items", Array("82")
     categoryMap.Add "Non-Contract Items", Array("30")
+    
+    ' Overlapping 10/11/12/18 and 82 ranges separated into 3-digit & 2-digit rules
+    categoryMap.Add "Traffic Signal Items", Array("100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "82")
+    categoryMap.Add "Traffic Control Items", Array("113", "114", "115", "116", "117", "118", "119", "12", "13" "18")
 
     category = ""
+    
+    ' --- Pass 1: Test 3-Digit Prefix Matches First ---
     For Each key In categoryMap.Keys
-        If Not IsError(Application.Match(prefix, categoryMap(key), 0)) Then
+        If Not IsError(Application.Match(prefix3, categoryMap(key), 0)) Then
             category = key
             Exit For
         End If
     Next key
 
+    ' --- Pass 2: Fall back to 2-Digit Prefix Matches if no 3-digit rule matched ---
     If category = "" Then
-        MsgBox "Category not found for item prefix " & prefix, vbExclamation
+        For Each key In categoryMap.Keys
+            If Not IsError(Application.Match(prefix2, categoryMap(key), 0)) Then
+                category = key
+                Exit For
+            End If
+        Next key
+    End If
+
+    If category = "" Then
+        MsgBox "Category not found for item prefix " & prefix3 & " (or " & prefix2 & ").", vbExclamation
         GoTo CleanExit
     End If
 
@@ -212,7 +234,7 @@ Sub AddNewItem()
         newBreakout.Range("F6").Formula = _
             "=HYPERLINK(""#'ItemList'!B" & insertRow & """,""Go Back to Item List"")"
 
-        newBreakout.name = sheetName
+        newBreakout.Name = sheetName
 
         '==============================
         ' Route section generation
@@ -249,7 +271,6 @@ CleanExit:
     Application.CutCopyMode = False
     ws.Protect UserInterfaceOnly:=True
     
-    
     If itemCreated Then
         Call UpdateEstimateMetaData
         Call LogEstimateChange("Macro: AddNewItem", "Item: #" & itemNum & " " & itemName & " Added")
@@ -263,5 +284,3 @@ CleanExit:
     UnfreezeUI
 
 End Sub
-
-
